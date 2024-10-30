@@ -1,6 +1,9 @@
 # Getting Started
+## Clone the repository
+git clone https://github.com/patrykslomka/DIiA_team4
+
 ## Install Node.js
-####installs fnm (Fast Node Manager)
+#### installs fnm (Fast Node Manager)
 winget install Schniz.fnm
 
 ##### configure fnm environment
@@ -18,8 +21,8 @@ npm -v # should print `10.9.0`
 OR
 https://nodejs.org/en/download/prebuilt-installer
 
-## Install dependencies
-TBA
+## Install dependencies so everything runs smoothly
+The requirements to install are in package.json. In your IDE terminal, run "npm install" to install it all OR "npm install @radix-ui/react-label @radix-ui/react-progress @radix-ui/react-select @radix-ui/react-slot @radix-ui/react-tabs @radix-ui/react-toast class-variance-authority clsx lucide-react next react react-dom tailwind-merge tailwindcss-animate @types/node @types/react @types/react-dom @typescript-eslint/eslint-plugin @typescript-eslint/parser autoprefixer eslint eslint-config-next postcss tailwindcss typescript"
 
 ## Run the platform
 npm run dev
