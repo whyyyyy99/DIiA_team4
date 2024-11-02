@@ -1,33 +1,54 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Camera, Upload, LogIn, LogOut, Gift, ChevronRight, ChevronLeft } from "lucide-react"
+import { Camera, Upload, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Check, Home, Info, Eye, X } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
+import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { Progress } from "@/components/ui/progress" 
+import { Progress } from "@/components/ui/progress"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+
+type UserType = 'tenant' | 'employee' | null;
+
+type Submission = {
+  id: string;
+  streetName: string;
+  apartmentNumber: string;
+  city: string;
+  structuralDefects: number;
+  decayMagnitude: number;
+  defectIntensity: number;
+  description: string;
+  photoUrl: string;
+  date: string;
+};
 
 export default function TenantPlatform() {
   const [currentStep, setCurrentStep] = useState(0)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [streetName, setStreetName] = useState("")
+  const [apartmentNumber, setApartmentNumber] = useState("")
+  const [city, setCity] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isCameraActive, setIsCameraActive] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [structuralDefects, setStructuralDefects] = useState(3)
+  const [decayMagnitude, setDecayMagnitude] = useState(3)
+  const [defectIntensity, setDefectIntensity] = useState(3)
+  const [description, setDescription] = useState("")
+  const [uploadedPhotosCount, setUploadedPhotosCount] = useState(0)
+  const [userType, setUserType] = useState<UserType>(null)
+  const [submissions, setSubmissions] = useState<Submission[]>([])
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { toast } = useToast()
 
-  useEffect(() => {
-    return () => {
-      if (isCameraActive) {
-        stopCamera()
-      }
-    }
-  }, [isCameraActive])
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -38,10 +59,9 @@ export default function TenantPlatform() {
         setIsCameraActive(true)
       }
     } catch (error) {
-      // Properly type the error and provide a fallback message
       const errorMessage = error instanceof Error 
         ? error.message 
-        : 'Unknown error occurred while accessing camera';
+        : 'Unknown error occurred while accessing camera'
       
       toast({
         title: "Camera Error",
@@ -50,8 +70,9 @@ export default function TenantPlatform() {
       })
     }
   }
+
   const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
+    if (videoRef.current && videoRef.current.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
       tracks.forEach(track => track.stop())
       setIsCameraActive(false)
@@ -62,16 +83,12 @@ export default function TenantPlatform() {
     if (videoRef.current && canvasRef.current) {
       const context = canvasRef.current.getContext('2d')
       if (context) {
-        canvasRef.current.width = videoRef.current.videoWidth
-        canvasRef.current.height = videoRef.current.videoHeight
-        context.drawImage(videoRef.current, 0, 0)
-        
+        context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height)
         canvasRef.current.toBlob((blob) => {
           if (blob) {
-            const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" })
+            const file = new File([blob], "captured-photo.jpg", { type: "image/jpeg" })
             setSelectedFile(file)
             stopCamera()
-            simulateUpload(file)
           }
         }, 'image/jpeg')
       }
@@ -80,35 +97,39 @@ export default function TenantPlatform() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0]
-      setSelectedFile(file)
-      simulateUpload(file)
+      setSelectedFile(event.target.files[0])
     }
   }
 
-  const simulateUpload = (file: File) => {
+  const simulateUpload = () => {
     setUploadProgress(0)
-  console.log('Starting upload of:', file.name)
-  const interval = setInterval(() => {
-    setUploadProgress(prev => {
-      if (prev >= 100) {
-        clearInterval(interval)
-        setCurrentStep(4)
-        return 100
-      }
-      return prev + 10
-    })
-  }, 200)
-}
+    const interval = setInterval(() => {
+      setUploadProgress(prevProgress => {
+        if (prevProgress >= 100) {
+          clearInterval(interval)
+          return 100
+        }
+        return prevProgress + 10
+      })
+    }, 500)
+  }
 
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault()
-    if (email === "test@gmail.com" && password === "qwerty123") {
+    if (email === "tenant@gmail.com" && password === "qwerty123") {
       toast({
         title: "Login successful!",
         description: "Welcome to the KleurijkWonen tenant platform!",
       })
-      setCurrentStep(1)
+      setUserType('tenant')
+      setCurrentStep(1) // Move to address input
+    } else if (email === "kevin@kw.com" && password === "kleurijkwonen") {
+      toast({
+        title: "Login successful!",
+        description: "Welcome to the KleurijkWonen employee platform!",
+      })
+      setUserType('employee')
+      setCurrentStep(9) // Move to employee dashboard
     } else {
       toast({
         title: "Login failed",
@@ -118,24 +139,46 @@ export default function TenantPlatform() {
     }
   }
 
-  const handleSignOut = () => {
-    stopCamera()
-    setCurrentStep(0)
-    setEmail("")
-    setPassword("")
-    setSelectedFile(null)
-    setUploadProgress(0)
-    toast({
-      title: "Signed out successfully",
-      description: "Thank you for using our platform!",
-    })
+  const handleAddressSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
+    if (streetName && apartmentNumber && city) {
+      setCurrentStep(2) // Move to instructions
+    } else {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all address details.",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleClaimReward = () => {
-    toast({
-      title: "Reward claimed!",
-      description: "Your reward will be processed shortly.",
-    })
+  const calculateFinalScore = () => {
+    return Math.round((structuralDefects + decayMagnitude + defectIntensity) / 3)
+  }
+
+  const getRewardLevel = (photoCount: number) => {
+    if (photoCount >= 10) return "Gold"
+    if (photoCount >= 5) return "Silver"
+    if (photoCount >= 1) return "Bronze"
+    return "None"
+  }
+
+  const handleSubmit = () => {
+    const newSubmission: Submission = {
+      id: Math.random().toString(36).substr(2, 9),
+      streetName,
+      apartmentNumber,
+      city,
+      structuralDefects,
+      decayMagnitude,
+      defectIntensity,
+      description,
+      photoUrl: selectedFile ? URL.createObjectURL(selectedFile) : '',
+      date: new Date().toLocaleString(),
+    }
+    setSubmissions([...submissions, newSubmission])
+    setUploadedPhotosCount(prev => prev + 1)
+    setCurrentStep(8) // Move to thank you screen
   }
 
   const steps = [
@@ -152,7 +195,7 @@ export default function TenantPlatform() {
           />
         </div>
         <CardTitle>Login to Your Account</CardTitle>
-        <CardDescription>Enter your credentials to access the tenant platform</CardDescription>
+        <CardDescription>Enter your credentials to access the platform</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-4">
@@ -163,7 +206,7 @@ export default function TenantPlatform() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="test@gmail.com"
+              placeholder="Email address"
               required
             />
           </div>
@@ -174,7 +217,7 @@ export default function TenantPlatform() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="qwerty123"
+              placeholder="Password"
               required
             />
           </div>
@@ -185,8 +228,8 @@ export default function TenantPlatform() {
       </CardContent>
     </Card>,
 
-    // Step 1: Instructions
-    <Card key="instructions" className="w-full max-w-md mx-auto">
+    // Step 1: Address Input
+    <Card key="address" className="w-full max-w-md mx-auto">
       <CardHeader>
         <div className="flex justify-center mb-6">
           <Image
@@ -197,47 +240,108 @@ export default function TenantPlatform() {
             className="rounded-lg"
           />
         </div>
-        <CardTitle>How to Take Photos</CardTitle>
-        <CardDescription>Follow these guidelines to help us maintain your building</CardDescription>
+        <CardTitle>Your Address</CardTitle>
+        <CardDescription>Please enter your address details</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <h3 className="font-semibold">Why We Need Your Photos</h3>
-          <p className="text-sm text-muted-foreground">
-            Your photos help us identify maintenance needs and ensure the safety and comfort of all tenants.
-          </p>
-        </div>
-        <div className="space-y-2">
-          <h3 className="font-semibold">Photo Guidelines</h3>
-          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-            <li>Ensure good lighting</li>
-            <li>Take clear, focused shots</li>
-            <li>Include the entire area of concern</li>
-            <li>Avoid including personal items</li>
-          </ul>
-        </div>
-        <Button onClick={() => setCurrentStep(2)} className="w-full">
-          Continue <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
+      <CardContent>
+        <form onSubmit={handleAddressSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="street_name">Street Name</Label>
+            <Input
+              id="street_name"
+              type="text"
+              value={streetName}
+              onChange={(e) => setStreetName(e.target.value)}
+              placeholder="Enter your street name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="apartment">Apartment Number</Label>
+            <Input
+              id="apartment"
+              type="text"
+              value={apartmentNumber}
+              onChange={(e) => setApartmentNumber(e.target.value)}
+              placeholder="Enter your apartment number"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="city">City</Label>
+            <Input
+              id="city"
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Enter your city"
+              required
+            />
+          </div>
+          <Button type="submit" className="w-full">
+            <Home className="mr-2 h-4 w-4" /> Continue
+          </Button>
+        </form>
       </CardContent>
     </Card>,
 
-    // Step 2: Example Photo
+    // Step 2: Instructions
+    <Card key="instructions" className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Instructions & Information</CardTitle>
+        <CardDescription>Help us improve your living space</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="bg-muted p-4 rounded-lg">
+          <h3 className="font-semibold mb-2 flex items-center">
+            <Info className="mr-2 h-4 w-4" />
+            Why We Need Your Help
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            By submitting photos and assessments of your living space, you help us:
+          </p>
+          <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
+            <li>Identify areas that need maintenance</li>
+            <li>Prioritize repairs and improvements</li>
+            <li>Ensure the safety and comfort of all tenants</li>
+          </ul>
+        </div>
+        <div className="bg-muted p-4 rounded-lg">
+          <h3 className="font-semibold mb-2 flex items-center">
+            <Gift className="mr-2 h-4 w-4" />
+            What You Can Gain
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            As a thank you for your participation, you can earn rewards based on the number of photos you submit:
+          </p>
+          <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
+            <li>Bronze level: 1-4 photos</li>
+            <li>Silver level: 5-9 photos</li>
+            <li>Gold level: 10+ photos</li>
+          </ul>
+        </div>
+        <h3 className="font-semibold mt-4">How to Take Photos:</h3>
+        <ol className="list-decimal list-inside space-y-2 text-sm">
+          <li>Ensure good lighting in the room</li>
+          <li>Stand 1-2 meters away from the subject</li>
+          <li>Make sure the entire element is visible</li>
+          <li>Take a clear, focused photo</li>
+        </ol>
+      </CardContent>
+      <CardFooter>
+        <Button onClick={() => setCurrentStep(3)} className="w-full">
+          Continue <ChevronRight className="ml-2 h-4 w-4" />
+        </Button>
+      </CardFooter>
+    </Card>,
+
+    // Step 3: Example Photo
     <Card key="example" className="w-full max-w-md mx-auto">
       <CardHeader>
-        <div className="flex justify-center mb-6">
-          <Image
-            src="/images/logo.png"
-            alt="KleurijkWonen Logo"
-            width={200}
-            height={80}
-            className="rounded-lg"
-          />
-        </div>
         <CardTitle>Example Photo</CardTitle>
-        <CardDescription>Your photo should look similar to this example</CardDescription>
+        <CardDescription>This is how your photo should look</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div className="rounded-lg overflow-hidden">
           <Image
             src="/images/window-frame.png"
@@ -247,73 +351,216 @@ export default function TenantPlatform() {
             className="w-full object-cover"
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Button onClick={() => {
-            setCurrentStep(3)
-            startCamera()
-          }} className="w-full" variant="outline">
-            <Camera className="mr-2 h-4 w-4" /> Take Photo
-          </Button>
-          <label className="w-full">
-            <Input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <Button className="w-full" variant="outline" asChild>
-              <span>
-                <Upload className="mr-2 h-4 w-4" /> Upload Photo
-              </span>
-            </Button>
-          </label>
-        </div>
       </CardContent>
       <CardFooter>
-        <Button
-          variant="ghost"
-          onClick={() => setCurrentStep(1)}
-          className="mr-auto"
-        >
-          <ChevronLeft className="mr-2 h-4 w-4" /> Back
+        <Button onClick={() => setCurrentStep(4)} className="w-full">
+          Take Photo <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </CardFooter>
     </Card>,
 
-    // Step 3: Camera View
-    <Card key="camera" className="w-full max-w-md mx-auto">
+    // Step 4: Photo Upload
+    <Card key="upload" className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Take Photo</CardTitle>
-        <CardDescription>Position the camera to capture the area clearly</CardDescription>
+        <CardTitle>Upload Photo</CardTitle>
+        <CardDescription>Take a photo or upload from your device</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isCameraActive ? (
+          <div className="space-y-4">
+            <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg" />
+            <Button onClick={capturePhoto} className="w-full">
+              <Camera className="mr-2 h-4 w-4" /> Capture Photo
+            </Button>
+          </div>
+        ) : selectedFile ? (
+          <div className="space-y-4">
+            <div className="rounded-lg overflow-hidden">
+              <Image
+                src={URL.createObjectURL(selectedFile)}
+                alt="Uploaded photo"
+                width={400}
+                height={300}
+                className="w-full object-cover"
+              />
+            </div>
+            <Button onClick={() => setSelectedFile(null)} variant="outline" 
+              className="w-full">
+              Remove Photo
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center w-full">
+              <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                  <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                  <p className="text-xs text-gray-500">PNG, JPG or GIF (MAX. 800x400px)</p>
+                </div>
+                <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+              </label>
+            </div>
+            <Button onClick={startCamera} className="w-full">
+              <Camera className="mr-2 h-4 w-4" /> Open Camera
+            </Button>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={() => setCurrentStep(3)}>
+          <ChevronLeft className="mr-2 h-4 w-4" /> Back
+        </Button>
+        <Button onClick={() => setCurrentStep(5)} disabled={!selectedFile}>
+          Continue <ChevronRight className="ml-2 h-4 w-4" />
+        </Button>
+      </CardFooter>
+    </Card>,
+
+    // Step 5: Photo Comparison
+    <Card key="comparison" className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Compare Photos</CardTitle>
+        <CardDescription>Please verify that your photo matches the example</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-          />
-          <canvas ref={canvasRef} className="hidden" />
-        </div>
         <div className="grid grid-cols-2 gap-4">
-          <Button
-            variant="outline"
-            onClick={() => {
-              stopCamera()
-              setCurrentStep(2)
-            }}
-          >
-            Cancel
+          <div>
+            <Label>Example Photo</Label>
+            <div className="rounded-lg overflow-hidden">
+              <Image
+                src="/images/window-frame.png"
+                alt="Example window frame"
+                width={200}
+                height={150}
+                className="w-full object-cover"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Your Photo</Label>
+            {selectedFile && (
+              <div className="rounded-lg overflow-hidden">
+                <Image
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="Your uploaded photo"
+                  width={200}
+                  height={150}
+                  className="w-full object-cover"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-between">
+          <Button variant="outline" onClick={() => setCurrentStep(4)}>
+            <ChevronLeft className="mr-2 h-4 w-4" /> Retake Photo
           </Button>
-          <Button onClick={capturePhoto}>
-            Capture Photo
+          <Button onClick={() => setCurrentStep(6)}>
+            Continue <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </CardContent>
     </Card>,
 
-    // Step 4: Thank You
+    // Step 6: Condition Assessment
+    <Card key="assessment" className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Assess the Condition</CardTitle>
+        <CardDescription>Please rate the following aspects on a scale of 1-6</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {selectedFile && (
+          <div className="rounded-lg overflow-hidden mb-6">
+            <Image
+              src={URL.createObjectURL(selectedFile)}
+              alt="Uploaded photo"
+              width={400}
+              height={300}
+              className="w-full object-cover"
+            />
+          </div>
+        )}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Are there defects to the structural element?</Label>
+            <Slider
+              value={[structuralDefects]}
+              onValueChange={(value) => setStructuralDefects(value[0])}
+              max={6}
+              min={1}
+              step={1}
+            />
+            <div className="text-sm text-muted-foreground text-center">{structuralDefects}/6</div>
+          </div>
+          <div className="space-y-2">
+            <Label>What is the magnitude of the decay?</Label>
+            <Slider
+              value={[decayMagnitude]}
+              onValueChange={(value) => setDecayMagnitude(value[0])}
+              max={6}
+              min={1}
+              step={1}
+            />
+            <div className="text-sm text-muted-foreground text-center">{decayMagnitude}/6</div>
+          </div>
+          <div className="space-y-2">
+            <Label>What is the intensity of the defects?</Label>
+            <Slider
+              value={[defectIntensity]}
+              onValueChange={(value) => setDefectIntensity(value[0])}
+              max={6}
+              min={1}
+              step={1}
+            />
+            <div className="text-sm text-muted-foreground text-center">{defectIntensity}/6</div>
+          </div>
+          <div className="mt-4 p-4 bg-muted rounded-lg">
+            <Label>Final Score:</Label>
+            <div className="text-2xl font-bold text-center">{calculateFinalScore()}/6</div>
+          </div>
+        </div>
+        <Button onClick={() => setCurrentStep(7)} className="w-full mt-4">
+          Continue <ChevronRight className="ml-2 h-4 w-4" />
+        </Button>
+      </CardContent>
+    </Card>,
+
+    // Step 7: Description Input
+    <Card key="description" className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Additional Description</CardTitle>
+        <CardDescription>Please provide any additional observations (optional)</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {selectedFile && (
+          <div className="rounded-lg overflow-hidden mb-6">
+            <Image
+              src={URL.createObjectURL(selectedFile)}
+              alt="Uploaded photo"
+              width={400}
+              height={300}
+              className="w-full object-cover"
+            />
+          </div>
+        )}
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            placeholder="Briefly explain your observations..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="min-h-[100px]"
+          />
+        </div>
+        <Button onClick={handleSubmit} className="w-full">
+          Submit <ChevronRight className="ml-2 h-4 w-4" />
+        </Button>
+      </CardContent>
+    </Card>,
+
+    // Step 8: Thank You (updated with rewards)
     <Card key="thankyou" className="w-full max-w-md mx-auto">
       <CardHeader>
         <div className="flex justify-center mb-6">
@@ -326,14 +573,14 @@ export default function TenantPlatform() {
           />
         </div>
         <CardTitle>Thank You!</CardTitle>
-        <CardDescription>Your photo has been submitted successfully</CardDescription>
+        <CardDescription>Your submission has been received</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {uploadProgress < 100 ? (
           <div className="space-y-2">
             <Progress value={uploadProgress} />
             <p className="text-sm text-center text-muted-foreground">
-              Uploading photo... {uploadProgress}%
+              Processing submission... {uploadProgress}%
             </p>
           </div>
         ) : (
@@ -349,11 +596,18 @@ export default function TenantPlatform() {
                 />
               </div>
             )}
+            <div className="bg-muted p-4 rounded-lg text-center">
+              <h3 className="font-semibold mb-2">Your Reward Level</h3>
+              <p className="text-2xl font-bold">{getRewardLevel(uploadedPhotosCount)}</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Total photos submitted: {uploadedPhotosCount}
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <Button onClick={handleClaimReward} className="w-full" variant="outline">
-                <Gift className="mr-2 h-4 w-4" /> Claim Reward
+              <Button onClick={() => setCurrentStep(3)} className="w-full" variant="outline">
+                Submit Another Photo
               </Button>
-              <Button onClick={handleSignOut} className="w-full">
+              <Button onClick={() => setCurrentStep(0)} className="w-full">
                 <LogOut className="mr-2 h-4 w-4" /> Sign Out
               </Button>
             </div>
@@ -361,13 +615,82 @@ export default function TenantPlatform() {
         )}
       </CardContent>
     </Card>,
+
+    // Step 9: Employee Dashboard
+    <Card key="employeeDashboard" className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Employee Dashboard</CardTitle>
+        <CardDescription>View tenant submissions</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="bg-muted p-4 rounded-lg">
+          <h3 className="font-semibold mb-2">Recent Submissions</h3>
+          {submissions.length === 0 ? (
+            <p>No submissions yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {submissions.map((submission) => (
+                <li key={submission.id} className="flex justify-between items-center">
+                  <span>{submission.streetName}, Apt {submission.apartmentNumber}</span>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-2" /> View
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Submission Details</DialogTitle>
+                        <DialogDescription>
+                          Submitted on {submission.date}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="rounded-lg overflow-hidden">
+                          <Image
+                            src={submission.photoUrl}
+                            alt="Submitted photo"
+                            width={400}
+                            height={300}
+                            className="w-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <p><strong>Address:</strong> {submission.streetName}, Apt {submission.apartmentNumber}, {submission.city}</p>
+                          <p><strong>Structural Defects:</strong> {submission.structuralDefects}/6</p>
+                          <p><strong>Decay Magnitude:</strong> {submission.decayMagnitude}/6</p>
+                          <p><strong>Defect Intensity:</strong> {submission.defectIntensity}/6</p>
+                          <p><strong>Description:</strong> {submission.description || "No description provided"}</p>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button onClick={() => setCurrentStep(0)} className="w-full">
+          <LogOut className="mr-2 h-4 w-4" /> Sign Out
+        </Button>
+      </CardFooter>
+    </Card>,
   ]
+
+  useEffect(() => {
+    if (currentStep === 8) {
+      simulateUpload()
+    }
+  }, [currentStep])
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="container max-w-lg mx-auto">
         {steps[currentStep]}
       </div>
+      <canvas ref={canvasRef} style={{ display: 'none' }} width={400} height={300} />
     </div>
   )
 }
