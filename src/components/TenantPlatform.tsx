@@ -180,6 +180,7 @@ export default function TenantPlatform() {
     setSubmissions([...submissions, newSubmission])
     setUploadedPhotosCount(prev => prev + 1)
     setCurrentStep(8)
+    simulateUpload() // Call simulateUpload here instead of in useEffect
   }
 
   const steps = [
