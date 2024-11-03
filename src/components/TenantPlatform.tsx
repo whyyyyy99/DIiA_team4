@@ -139,6 +139,17 @@ export default function TenantPlatform() {
     }
   }
 
+  const handleLogout = () => {
+    setEmail("")
+    setPassword("")
+    setUserType(null)
+    setCurrentStep(0)
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    })
+  }
+
   const handleAddressSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     if (streetName && apartmentNumber && city) {
@@ -182,6 +193,23 @@ export default function TenantPlatform() {
     setCurrentStep(9)
     simulateUpload()
   }
+
+  useEffect(() => {
+    if (currentStep === 5) {
+      startCamera()
+    } else {
+      stopCamera()
+    }
+  }, [currentStep])
+
+  useEffect(() => {
+    if (userType === 'employee') {
+      const fetchSubmissions = async () => {
+        console.log('Fetching submissions for employee')
+      }
+      fetchSubmissions()
+    }
+  }, [userType])
 
   const steps = [
     // Step 0: Login
@@ -612,7 +640,7 @@ export default function TenantPlatform() {
               <Button onClick={() => setCurrentStep(3)} className="w-full" variant="outline">
                 Submit Another Photo
               </Button>
-              <Button onClick={() => setCurrentStep(0)} className="w-full">
+              <Button onClick={handleLogout} className="w-full">
                 <LogOut className="mr-2 h-4 w-4" /> Sign Out
               </Button>
             </div>
@@ -677,7 +705,7 @@ export default function TenantPlatform() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={() => setCurrentStep(0)} className="w-full">
+        <Button onClick={handleLogout} className="w-full">
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
       </CardFooter>
