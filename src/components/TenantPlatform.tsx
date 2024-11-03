@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Camera, Upload, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Check, Home, Info, Eye, X } from "lucide-react"
+import { Camera, Upload, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Home, Info, Eye } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -164,6 +164,7 @@ export default function TenantPlatform() {
   }
 
   const handleSubmit = () => {
+    const submissionDate = new Date().toLocaleString()
     const newSubmission: Submission = {
       id: Math.random().toString(36).substr(2, 9),
       streetName,
@@ -174,11 +175,11 @@ export default function TenantPlatform() {
       defectIntensity,
       description,
       photoUrl: selectedFile ? URL.createObjectURL(selectedFile) : '',
-      date: new Date().toLocaleString(),
+      date: submissionDate,
     }
     setSubmissions([...submissions, newSubmission])
     setUploadedPhotosCount(prev => prev + 1)
-    setCurrentStep(8) // Move to thank you screen
+    setCurrentStep(8)
   }
 
   const steps = [
@@ -680,10 +681,15 @@ export default function TenantPlatform() {
   ]
 
   useEffect(() => {
-    if (currentStep === 8) {
-      simulateUpload()
+    if (userType === 'employee') {
+      // This effect runs when userType changes and is 'employee'
+      const fetchSubmissions = async () => {
+        // In a real app, you would fetch submissions here
+        console.log('Fetching submissions for employee')
+      }
+      fetchSubmissions()
     }
-  }, [currentStep])
+  }, [userType])
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
