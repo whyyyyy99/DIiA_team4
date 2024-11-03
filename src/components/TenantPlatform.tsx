@@ -1,5 +1,6 @@
 "use client"
 
+// Importing necessary hooks and components from React and other libraries -> components can be found in the project directories e.g. components/ui
 import { useState, useRef, useEffect } from "react"
 import { Camera, Upload, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Home, Info, Eye } from "lucide-react"
 import Image from "next/image"
@@ -13,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
+// Defining types for user and submission data -> either tenant or employee
 type UserType = 'tenant' | 'employee' | null;
 
 type Submission = {
@@ -28,27 +30,31 @@ type Submission = {
   date: string;
 };
 
+// Main component for the tenant platform
 export default function TenantPlatform() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [streetName, setStreetName] = useState("")
-  const [apartmentNumber, setApartmentNumber] = useState("")
-  const [city, setCity] = useState("")
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [isCameraActive, setIsCameraActive] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [structuralDefects, setStructuralDefects] = useState(3)
-  const [decayMagnitude, setDecayMagnitude] = useState(3)
-  const [defectIntensity, setDefectIntensity] = useState(3)
-  const [description, setDescription] = useState("")
-  const [uploadedPhotosCount, setUploadedPhotosCount] = useState(0)
-  const [userType, setUserType] = useState<UserType>(null)
-  const [submissions, setSubmissions] = useState<Submission[]>([])
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { toast } = useToast()
+  
+  // Variables to manage component state
+  const [currentStep, setCurrentStep] = useState(0) // Track the current step in the process
+  const [email, setEmail] = useState("") // Store user email
+  const [password, setPassword] = useState("") // Store user password
+  const [streetName, setStreetName] = useState("") // Store street name
+  const [apartmentNumber, setApartmentNumber] = useState("") // Store apartment number
+  const [city, setCity] = useState("") // Store city
+  const [selectedFile, setSelectedFile] = useState<File | null>(null) // Store selected file for upload
+  const [isCameraActive, setIsCameraActive] = useState(false) // Track if the camera is active
+  const [uploadProgress, setUploadProgress] = useState(0) // Track upload progress
+  const [structuralDefects, setStructuralDefects] = useState(3) // Store structural defects rating
+  const [decayMagnitude, setDecayMagnitude] = useState(3) // Store decay magnitude rating
+  const [defectIntensity, setDefectIntensity] = useState(3) // Store defect intensity rating
+  const [description, setDescription] = useState("") // Store additional description
+  const [uploadedPhotosCount, setUploadedPhotosCount] = useState(0) // Count of uploaded photos
+  const [userType, setUserType] = useState<UserType>(null) // Track user type (tenant or employee)
+  const [submissions, setSubmissions] = useState<Submission[]>([]) // Store submissions
+  const videoRef = useRef<HTMLVideoElement>(null) // Reference to video element for camera
+  const canvasRef = useRef<HTMLCanvasElement>(null) // Reference to canvas element for capturing photos
+  const { toast } = useToast() // Toast for notifications
 
+  // Function to start the camera on a device
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -71,6 +77,7 @@ export default function TenantPlatform() {
     }
   }
 
+  // Function to stop the camera
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
@@ -79,6 +86,7 @@ export default function TenantPlatform() {
     }
   }
 
+  // Function to capture a photo from the device camera
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const context = canvasRef.current.getContext('2d')
@@ -95,12 +103,14 @@ export default function TenantPlatform() {
     }
   }
 
+  // Handling file selection for upload
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0])
     }
   }
 
+  // Simulating file upload progress
   const simulateUpload = () => {
     setUploadProgress(0)
     const interval = setInterval(() => {
@@ -114,6 +124,7 @@ export default function TenantPlatform() {
     }, 500)
   }
 
+  // Handling user login
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault()
     if (email === "tenant@gmail.com" && password === "qwerty123") {
@@ -122,14 +133,14 @@ export default function TenantPlatform() {
         description: "Welcome to the KleurijkWonen tenant platform!",
       })
       setUserType('tenant')
-      setCurrentStep(1) // Move to address input
+      setCurrentStep(1) // Move to address input -> if the tenant logs in, they see then the fill in address pages
     } else if (email === "kevin@kw.com" && password === "kleurijkwonen") {
       toast({
         title: "Login successful!",
         description: "Welcome to the KleurijkWonen employee platform!",
       })
       setUserType('employee')
-      setCurrentStep(9) // Move to employee dashboard
+      setCurrentStep(9) // Move to employee dashboard -> if the employee logs in, then the next page is their dashborad, not what the tenants see
     } else {
       toast({
         title: "Login failed",
@@ -139,6 +150,7 @@ export default function TenantPlatform() {
     }
   }
 
+  // Handling address submission
   const handleAddressSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     if (streetName && apartmentNumber && city) {
@@ -152,10 +164,12 @@ export default function TenantPlatform() {
     }
   }
 
+  // Calculating final score of assessment based on ratings
   const calculateFinalScore = () => {
     return Math.round((structuralDefects + decayMagnitude + defectIntensity) / 3)
   }
 
+  // Determining reward level based on photo count (we can change the levels)
   const getRewardLevel = (photoCount: number) => {
     if (photoCount >= 10) return "Gold"
     if (photoCount >= 5) return "Silver"
@@ -163,6 +177,7 @@ export default function TenantPlatform() {
     return "None"
   }
 
+  // Handling submission of data
   const handleSubmit = () => {
     const submissionDate = new Date().toLocaleString()
     const newSubmission: Submission = {
@@ -180,10 +195,12 @@ export default function TenantPlatform() {
     setSubmissions([...submissions, newSubmission])
     setUploadedPhotosCount(prev => prev + 1)
     setCurrentStep(8)
-    simulateUpload() // Call simulateUpload here instead of in useEffect
+    simulateUpload()
   }
 
+  // Definining steps for the user interface
   const steps = [
+    
     // Step 0: Login
     <Card key="login" className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -287,7 +304,7 @@ export default function TenantPlatform() {
       </CardContent>
     </Card>,
 
-    // Step 2: Instructions
+    // Step 2: Instructions for tenants
     <Card key="instructions" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Instructions & Information</CardTitle>
@@ -528,7 +545,7 @@ export default function TenantPlatform() {
       </CardContent>
     </Card>,
 
-    // Step 7: Description Input
+    // Step 7: Description Input (optional for tenants)
     <Card key="description" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Additional Description</CardTitle>
@@ -562,7 +579,7 @@ export default function TenantPlatform() {
       </CardContent>
     </Card>,
 
-    // Step 8: Thank You (updated with rewards)
+    // Step 8: Thank You (with rewards - we can add the whole rewards page)
     <Card key="thankyou" className="w-full max-w-md mx-auto">
       <CardHeader>
         <div className="flex justify-center mb-6">
@@ -681,6 +698,7 @@ export default function TenantPlatform() {
     </Card>,
   ]
 
+  // Effect to fetch submissions when userType is 'employee'
   useEffect(() => {
     if (userType === 'employee') {
       // This effect runs when userType changes and is 'employee'
@@ -692,6 +710,7 @@ export default function TenantPlatform() {
     }
   }, [userType])
 
+  // Render the current step of the process
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="container max-w-lg mx-auto">
