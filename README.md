@@ -1,4 +1,13 @@
 # Getting Started
+## Login details
+### Tenant-side
+tenant@gmail.com
+qwerty123
+
+### Employee-side
+kevin@kw.com
+kleurijkwonen
+
 ## Clone the repository
 git clone https://github.com/patrykslomka/DIiA_team4
 
@@ -22,7 +31,7 @@ OR
 https://nodejs.org/en/download/prebuilt-installer
 
 ## Install dependencies so everything runs smoothly
-The requirements to install are in package.json. In your IDE terminal, run "npm install" to install it all OR "npm install @radix-ui/react-label @radix-ui/react-progress @radix-ui/react-select @radix-ui/react-slot @radix-ui/react-tabs @radix-ui/react-toast class-variance-authority clsx lucide-react next react react-dom tailwind-merge tailwindcss-animate @types/node @types/react @types/react-dom @typescript-eslint/eslint-plugin @typescript-eslint/parser autoprefixer eslint eslint-config-next postcss tailwindcss typescript"
+The requirements to install are in package.json. In your IDE terminal, run "npm install" to install it all OR "npm install @radix-ui/react-dialog @radix-ui/react-icons @radix-ui/react-label @radix-ui/react-progress @radix-ui/react-select @radix-ui/react-slider @radix-ui/react-slot @radix-ui/react-tabs @radix-ui/react-toast class-variance-authority clsx lucide-react next react react-dom tailwind-merge tailwindcss-animate @types/node @types/react @types/react-dom @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint eslint-config-next postcss tailwindcss typescript"
 
 ## Run the platform
 npm run dev
