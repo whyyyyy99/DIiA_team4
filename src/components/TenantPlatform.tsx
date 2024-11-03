@@ -1,6 +1,5 @@
 "use client"
 
-// Importing necessary hooks and components from React and other libraries -> components can be found in the project directories e.g. components/ui
 import { useState, useRef, useEffect } from "react"
 import { Camera, Upload, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Home, Info, Eye } from "lucide-react"
 import Image from "next/image"
@@ -14,7 +13,6 @@ import { useToast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
-// Defining types for user and submission data -> either tenant or employee
 type UserType = 'tenant' | 'employee' | null;
 
 type Submission = {
@@ -30,31 +28,27 @@ type Submission = {
   date: string;
 };
 
-// Main component for the tenant platform
 export default function TenantPlatform() {
-  
-  // Variables to manage component state
-  const [currentStep, setCurrentStep] = useState(0) // Track the current step in the process
-  const [email, setEmail] = useState("") // Store user email
-  const [password, setPassword] = useState("") // Store user password
-  const [streetName, setStreetName] = useState("") // Store street name
-  const [apartmentNumber, setApartmentNumber] = useState("") // Store apartment number
-  const [city, setCity] = useState("") // Store city
-  const [selectedFile, setSelectedFile] = useState<File | null>(null) // Store selected file for upload
-  const [isCameraActive, setIsCameraActive] = useState(false) // Track if the camera is active
-  const [uploadProgress, setUploadProgress] = useState(0) // Track upload progress
-  const [structuralDefects, setStructuralDefects] = useState(3) // Store structural defects rating
-  const [decayMagnitude, setDecayMagnitude] = useState(3) // Store decay magnitude rating
-  const [defectIntensity, setDefectIntensity] = useState(3) // Store defect intensity rating
-  const [description, setDescription] = useState("") // Store additional description
-  const [uploadedPhotosCount, setUploadedPhotosCount] = useState(0) // Count of uploaded photos
-  const [userType, setUserType] = useState<UserType>(null) // Track user type (tenant or employee)
-  const [submissions, setSubmissions] = useState<Submission[]>([]) // Store submissions
-  const videoRef = useRef<HTMLVideoElement>(null) // Reference to video element for camera
-  const canvasRef = useRef<HTMLCanvasElement>(null) // Reference to canvas element for capturing photos
-  const { toast } = useToast() // Toast for notifications
+  const [currentStep, setCurrentStep] = useState(0)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [streetName, setStreetName] = useState("")
+  const [apartmentNumber, setApartmentNumber] = useState("")
+  const [city, setCity] = useState("")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isCameraActive, setIsCameraActive] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [structuralDefects, setStructuralDefects] = useState(3)
+  const [decayMagnitude, setDecayMagnitude] = useState(3)
+  const [defectIntensity, setDefectIntensity] = useState(3)
+  const [description, setDescription] = useState("")
+  const [uploadedPhotosCount, setUploadedPhotosCount] = useState(0)
+  const [userType, setUserType] = useState<UserType>(null)
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const { toast } = useToast()
 
-  // Function to start the camera on a device
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -77,7 +71,6 @@ export default function TenantPlatform() {
     }
   }
 
-  // Function to stop the camera
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
@@ -86,7 +79,6 @@ export default function TenantPlatform() {
     }
   }
 
-  // Function to capture a photo from the device camera
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const context = canvasRef.current.getContext('2d')
@@ -97,20 +89,20 @@ export default function TenantPlatform() {
             const file = new File([blob], "captured-photo.jpg", { type: "image/jpeg" })
             setSelectedFile(file)
             stopCamera()
+            setCurrentStep(6) // Move to the photo comparison step
           }
         }, 'image/jpeg')
       }
     }
   }
 
-  // Handling file selection for upload
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0])
+      setCurrentStep(6) // Move to the photo comparison step
     }
   }
 
-  // Simulating file upload progress
   const simulateUpload = () => {
     setUploadProgress(0)
     const interval = setInterval(() => {
@@ -124,7 +116,6 @@ export default function TenantPlatform() {
     }, 500)
   }
 
-  // Handling user login
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault()
     if (email === "tenant@gmail.com" && password === "qwerty123") {
@@ -133,14 +124,14 @@ export default function TenantPlatform() {
         description: "Welcome to the KleurijkWonen tenant platform!",
       })
       setUserType('tenant')
-      setCurrentStep(1) // Move to address input -> if the tenant logs in, they see then the fill in address pages
+      setCurrentStep(1)
     } else if (email === "kevin@kw.com" && password === "kleurijkwonen") {
       toast({
         title: "Login successful!",
         description: "Welcome to the KleurijkWonen employee platform!",
       })
       setUserType('employee')
-      setCurrentStep(9) // Move to employee dashboard -> if the employee logs in, then the next page is their dashborad, not what the tenants see
+      setCurrentStep(10)
     } else {
       toast({
         title: "Login failed",
@@ -150,11 +141,10 @@ export default function TenantPlatform() {
     }
   }
 
-  // Handling address submission
   const handleAddressSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     if (streetName && apartmentNumber && city) {
-      setCurrentStep(2) // Move to instructions
+      setCurrentStep(2)
     } else {
       toast({
         title: "Missing information",
@@ -164,12 +154,10 @@ export default function TenantPlatform() {
     }
   }
 
-  // Calculating final score of assessment based on ratings
   const calculateFinalScore = () => {
     return Math.round((structuralDefects + decayMagnitude + defectIntensity) / 3)
   }
 
-  // Determining reward level based on photo count (we can change the levels)
   const getRewardLevel = (photoCount: number) => {
     if (photoCount >= 10) return "Gold"
     if (photoCount >= 5) return "Silver"
@@ -177,7 +165,6 @@ export default function TenantPlatform() {
     return "None"
   }
 
-  // Handling submission of data
   const handleSubmit = () => {
     const submissionDate = new Date().toLocaleString()
     const newSubmission: Submission = {
@@ -194,13 +181,11 @@ export default function TenantPlatform() {
     }
     setSubmissions([...submissions, newSubmission])
     setUploadedPhotosCount(prev => prev + 1)
-    setCurrentStep(8)
+    setCurrentStep(9)
     simulateUpload()
   }
 
-  // Definining steps for the user interface
   const steps = [
-    
     // Step 0: Login
     <Card key="login" className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -370,73 +355,76 @@ export default function TenantPlatform() {
             className="w-full object-cover"
           />
         </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Button onClick={() => setCurrentStep(4)} className="w-full">
+            <Upload className="mr-2 h-4 w-4" /> Upload Photo
+          </Button>
+          <Button onClick={() => setCurrentStep(5)} className="w-full">
+            <Camera className="mr-2 h-4 w-4" /> Take Photo
+          </Button>
+        </div>
       </CardContent>
-      <CardFooter>
-        <Button onClick={() => setCurrentStep(4)} className="w-full">
-          Take Photo <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
-      </CardFooter>
     </Card>,
 
-    // Step 4: Photo Upload
+    // Step 4: Upload Photo
     <Card key="upload" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Upload Photo</CardTitle>
-        <CardDescription>Take a photo or upload from your device</CardDescription>
+        <CardDescription>Select a photo from your device</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {isCameraActive ? (
-          <div className="space-y-4">
-            <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg" />
-            <Button onClick={capturePhoto} className="w-full">
-              <Camera className="mr-2 h-4 w-4" /> Capture Photo
-            </Button>
-          </div>
-        ) : selectedFile ? (
-          <div className="space-y-4">
-            <div className="rounded-lg overflow-hidden">
-              <Image
-                src={URL.createObjectURL(selectedFile)}
-                alt="Uploaded photo"
-                width={400}
-                height={300}
-                className="w-full object-cover"
-              />
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-center w-full">
+          <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+              <Upload className="w-10 h-10 mb-3 text-gray-400" />
+              <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+              <p  className="text-xs text-gray-500">PNG, JPG or GIF (MAX. 800x400px)</p>
             </div>
-            <Button onClick={() => setSelectedFile(null)} variant="outline" 
-              className="w-full">
-              Remove Photo
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-center w-full">
-              <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-10 h-10 mb-3 text-gray-400" />
-                  <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                  <p className="text-xs text-gray-500">PNG, JPG or GIF (MAX. 800x400px)</p>
-                </div>
-                <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
-              </label>
-            </div>
-            <Button onClick={startCamera} className="w-full">
-              <Camera className="mr-2 h-4 w-4" /> Open Camera
-            </Button>
-          </div>
-        )}
+            <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+          </label>
+        </div>
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button variant="outline" onClick={() => setCurrentStep(3)}>
           <ChevronLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-        <Button onClick={() => setCurrentStep(5)} disabled={!selectedFile}>
-          Continue <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
       </CardFooter>
     </Card>,
 
-    // Step 5: Photo Comparison
+    // Step 5: Camera View
+    <Card key="camera" className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Take Photo</CardTitle>
+        <CardDescription>Position the camera to capture the area clearly</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Button
+            variant="outline"
+            onClick={() => {
+              stopCamera()
+              setCurrentStep(3)
+            }}
+          >
+            Cancel
+          </Button>
+          <Button onClick={capturePhoto}>
+            Capture Photo
+          </Button>
+        </div>
+      </CardContent>
+    </Card>,
+
+    // Step 6: Photo Comparison
     <Card key="comparison" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Compare Photos</CardTitle>
@@ -472,17 +460,17 @@ export default function TenantPlatform() {
           </div>
         </div>
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setCurrentStep(4)}>
+          <Button variant="outline" onClick={() => setCurrentStep(3)}>
             <ChevronLeft className="mr-2 h-4 w-4" /> Retake Photo
           </Button>
-          <Button onClick={() => setCurrentStep(6)}>
+          <Button onClick={() => setCurrentStep(7)}>
             Continue <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </CardContent>
     </Card>,
 
-    // Step 6: Condition Assessment
+    // Step 7: Condition Assessment
     <Card key="assessment" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Assess the Condition</CardTitle>
@@ -539,13 +527,13 @@ export default function TenantPlatform() {
             <div className="text-2xl font-bold text-center">{calculateFinalScore()}/6</div>
           </div>
         </div>
-        <Button onClick={() => setCurrentStep(7)} className="w-full mt-4">
+        <Button onClick={() => setCurrentStep(8)} className="w-full mt-4">
           Continue <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </CardContent>
     </Card>,
 
-    // Step 7: Description Input (optional for tenants)
+    // Step 8: Description Input
     <Card key="description" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Additional Description</CardTitle>
@@ -579,7 +567,7 @@ export default function TenantPlatform() {
       </CardContent>
     </Card>,
 
-    // Step 8: Thank You (with rewards - we can add the whole rewards page)
+    // Step 9: Thank You
     <Card key="thankyou" className="w-full max-w-md mx-auto">
       <CardHeader>
         <div className="flex justify-center mb-6">
@@ -635,7 +623,7 @@ export default function TenantPlatform() {
       </CardContent>
     </Card>,
 
-    // Step 9: Employee Dashboard
+    // Step 10: Employee Dashboard
     <Card key="employeeDashboard" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Employee Dashboard</CardTitle>
@@ -698,19 +686,23 @@ export default function TenantPlatform() {
     </Card>,
   ]
 
-  // Effect to fetch submissions when userType is 'employee'
+  useEffect(() => {
+    if (currentStep === 5) {
+      startCamera()
+    } else {
+      stopCamera()
+    }
+  }, [currentStep])
+
   useEffect(() => {
     if (userType === 'employee') {
-      // This effect runs when userType changes and is 'employee'
       const fetchSubmissions = async () => {
-        // In a real app, you would fetch submissions here
         console.log('Fetching submissions for employee')
       }
       fetchSubmissions()
     }
   }, [userType])
 
-  // Render the current step of the process
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="container max-w-lg mx-auto">
