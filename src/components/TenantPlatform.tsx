@@ -36,7 +36,6 @@ export default function TenantPlatform() {
   const [apartmentNumber, setApartmentNumber] = useState("")
   const [city, setCity] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [isCameraActive, setIsCameraActive] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [structuralDefects, setStructuralDefects] = useState(3)
   const [decayMagnitude, setDecayMagnitude] = useState(3)
@@ -56,7 +55,6 @@ export default function TenantPlatform() {
       })
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        setIsCameraActive(true)
       }
     } catch (error) {
       const errorMessage = error instanceof Error 
@@ -75,7 +73,7 @@ export default function TenantPlatform() {
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
       tracks.forEach(track => track.stop())
-      setIsCameraActive(false)
+      videoRef.current.srcObject = null
     }
   }
 
@@ -89,7 +87,7 @@ export default function TenantPlatform() {
             const file = new File([blob], "captured-photo.jpg", { type: "image/jpeg" })
             setSelectedFile(file)
             stopCamera()
-            setCurrentStep(6) // Move to the photo comparison step
+            setCurrentStep(6)
           }
         }, 'image/jpeg')
       }
@@ -99,7 +97,7 @@ export default function TenantPlatform() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0])
-      setCurrentStep(6) // Move to the photo comparison step
+      setCurrentStep(6)
     }
   }
 
@@ -692,7 +690,7 @@ export default function TenantPlatform() {
     } else {
       stopCamera()
     }
-  }, [currentStep])
+  }, [currentStep]) // startCamera is stable (doesn't depend on any state/props)
 
   useEffect(() => {
     if (userType === 'employee') {
