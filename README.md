@@ -2,11 +2,13 @@
 ## Login details
 ### Tenant-side
 tenant@gmail.com
+
 qwerty123
 
 ### Employee-side
 kevin@kw.com
-kleurijkwonen
+
+kleurrijkwonen
 
 ## Clone the repository
 git clone https://github.com/patrykslomka/DIiA_team4
