@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Camera, Upload, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Home, Info, Eye } from "lucide-react"
+import { Camera, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Info} from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+
 import AdminDashboard from "./AdminDashboard"
 
 type UserType = 'tenant' | 'employee' | 'admin' | null;
@@ -49,7 +49,7 @@ export default function TenantPlatform() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { toast } = useToast()
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'environment' } 
@@ -68,7 +68,7 @@ export default function TenantPlatform() {
         variant: "destructive",
       })
     }
-  }
+  }, [toast])
 
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -198,7 +198,7 @@ export default function TenantPlatform() {
     } else {
       stopCamera()
     }
-  }, [currentStep, userType])
+  }, [currentStep, userType, startCamera, stopCamera])
 
   const tenantSteps = [
     // Step 1: Instructions
