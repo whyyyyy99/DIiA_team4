@@ -124,6 +124,8 @@ export default function TenantPlatform() {
         variant: "destructive",
       })
     }
+    // Clear description when logging in
+    setDescription("")
   }
 
   const handleLogout = () => {
@@ -131,14 +133,12 @@ export default function TenantPlatform() {
     setPassword("")
     setUserType(null)
     setCurrentStep(0)
+    // Clear description when logging out
+    setDescription("")
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",
     })
-  }
-
-  const calculateFinalScore = () => {
-    return Math.round((structuralDefects + decayMagnitude + defectIntensity) / 3)
   }
 
   const getRewardLevel = (photoCount: number) => {
@@ -334,11 +334,11 @@ export default function TenantPlatform() {
         </div>
       </CardContent>
     </Card>,
-    // Step 5: Condition Assessment
+    // Step 5: Condition Assessment (updated for tenant)
     <Card key="assessment" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Assess the Condition</CardTitle>
-        <CardDescription>Please rate the following aspects on a scale of 1-6</CardDescription>
+        <CardDescription>Please rate the following aspect on a scale of 1-6</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {selectedFile && (
@@ -363,28 +363,6 @@ export default function TenantPlatform() {
               step={1}
             />
             <div className="text-sm text-muted-foreground text-center">{structuralDefects}/6</div>
-          </div>
-          <div className="space-y-2">
-            <Label>What is the magnitude of the decay?</Label>
-            <Slider
-              value={[decayMagnitude]}
-              onValueChange={(value) =>   setDecayMagnitude(value[0])}
-              max={6}
-              min={1}
-              step={1}
-            />
-            <div className="text-sm text-muted-foreground text-center">{decayMagnitude}/6</div>
-          </div>
-          <div  className="space-y-2">
-            <Label>What is the intensity of the defects?</Label>
-            <Slider
-              value={[defectIntensity]}
-              onValueChange={(value) => setDefectIntensity(value[0])}
-              max={6}
-              min={1}
-              step={1}
-            />
-            <div className="text-sm text-muted-foreground text-center">{defectIntensity}/6</div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Additional Comments (Optional)</Label>
@@ -584,7 +562,7 @@ export default function TenantPlatform() {
         </div>
       </CardContent>
     </Card>,
-    // Step 14: Condition Assessment
+    // Step 14: Condition Assessment (unchanged for employee)
     <Card key="employeeAssessment" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Assess the Condition</CardTitle>
