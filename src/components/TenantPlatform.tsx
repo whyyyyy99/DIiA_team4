@@ -103,7 +103,7 @@ export default function TenantPlatform() {
       })
       setUserType('tenant')
       setCurrentStep(1) // Start at the first tenant step (Instructions)
-    } else if (email === "employee@kw.com" && password === "employee") {
+    } else if (email === "kevinweloveyou@kw.com" && password === "employee") {
       toast({
         title: "Login successful!",
         description: "Welcome to the KleurijkWonen employee platform!",
