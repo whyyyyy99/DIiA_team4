@@ -6,6 +6,11 @@ tenant@gmail.com
 qwerty123
 
 ### Employee-side
+employee@kw.com
+
+employee
+
+### Admin-side
 kevin@kw.com
 
 kleurrijkwonen
