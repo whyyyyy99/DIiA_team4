@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { Camera, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Info} from "lucide-react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { Camera, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Info } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +11,6 @@ import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
-
 import AdminDashboard from "./AdminDashboard"
 
 type UserType = 'tenant' | 'employee' | 'admin' | null;
