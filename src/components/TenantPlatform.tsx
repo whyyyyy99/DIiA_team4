@@ -70,13 +70,13 @@ export default function TenantPlatform() {
     }
   }, [toast])
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
       tracks.forEach(track => track.stop())
       videoRef.current.srcObject = null
     }
-  }
+  }, [])
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
