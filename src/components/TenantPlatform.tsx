@@ -479,7 +479,7 @@ export default function TenantPlatform() {
       <CardContent className="space-y-4">
         <div className="rounded-lg overflow-hidden">
           <Image
-            src="/images/window-frame1.png"
+            src="/images/door-handle.png"
             alt="Example window frame"
             width={400}
             height={300}
@@ -529,7 +529,7 @@ export default function TenantPlatform() {
             <Label>Example Photo</Label>
             <div className="rounded-lg overflow-hidden">
               <Image
-                src="/images/window-frame1.png"
+                src="/images/door-handle.png"
                 alt="Example window frame"
                 width={200}
                 height={150}
