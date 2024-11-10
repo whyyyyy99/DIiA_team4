@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  email         String       @unique
+  password      String
+  role          String       @default("tenant")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  submissions   Submission[]
+}
+
+model Submission {
+  id                String   @id @default(cuid())
+  type              String
+  streetName        String
+  apartmentNumber   String
+  city              String
+  structuralDefects Int
+  decayMagnitude    Int?
+  defectIntensity   Int?
+  description       String?
+  photoUrl          String
+  userId            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id])
+}
