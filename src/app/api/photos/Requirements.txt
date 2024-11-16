@@ -1,3 +1,5 @@
-First, make sure you have the necessary packages for handling image processing and API requests:
+Use route_.ts instead of route.ts
+
+Then, make sure you have the necessary packages for handling image processing and API requests:
 
 npm install axios form-data sharp
