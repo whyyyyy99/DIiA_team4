@@ -1,0 +1,3 @@
+First, make sure you have the necessary packages for handling image processing and API requests:
+
+npm install axios form-data sharp
