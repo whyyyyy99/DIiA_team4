@@ -16,16 +16,18 @@ model User {
 }
 
 model Submission {
-  id                 String   @id @default(cuid())
-  type               String
-  streetName         String
-  apartmentNumber    String
-  city               String
-  structuralDefects  Int
-  decayMagnitude     Int
-  defectIntensity    Int
-  description        String
-  photoUrl           String
-  date               DateTime @default(now())
-  submittedBy        String?
+  id                String   @id @default(cuid())
+  type              String
+  streetName        String
+  apartmentNumber   String
+  city              String
+  structuralDefects Int
+  decayMagnitude    Int
+  defectIntensity   Int
+  description       String
+  photoUrl          String
+  date              DateTime @default(now())
+  submittedBy       String?
+  latitude          Float?
+  longitude         Float?
 }

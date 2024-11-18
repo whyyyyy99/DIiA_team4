@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect, useCallback } from "react"
-import { Camera, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Info } from "lucide-react"
+import { Camera, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Info, MapPin } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +29,8 @@ type Submission = {
   photoUrl: string;
   date: string;
   submittedBy?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export default function Component() {
@@ -45,6 +47,7 @@ export default function Component() {
   const [userType, setUserType] = useState<UserType>(null)
   const [_submissions, setSubmissions] = useState<Submission[]>([])
   const [selectedAddress, setSelectedAddress] = useState({ street: "", number: "", city: "" })
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { toast } = useToast()
@@ -59,6 +62,29 @@ export default function Component() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream
       }
+
+      // Request geolocation permission
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          })
+          toast({
+            title: "Location accessed",
+            description: "Your location has been successfully captured.",
+            variant: "default",
+          })
+        },
+        (error) => {
+          console.error("Geolocation error:", error)
+          toast({
+            title: "Location Error",
+            description: "Unable to access your location. Some features may be limited.",
+            variant: "destructive",
+          })
+        }
+      )
     } catch (error) {
       const errorMessage = error instanceof Error 
         ? error.message 
@@ -164,6 +190,7 @@ export default function Component() {
     setSelectedFile(null)
     setShowPhotoComparison(false)
     setComparisonScore(null)
+    setLocation(null)
   }
 
   const handleComparisonComplete = (score: number) => {
@@ -178,7 +205,7 @@ export default function Component() {
       toast({
         title: "Photo might need adjustment",
         description: "Try to match the angle and framing of the reference photo more closely.",
-        variant: "destructive", // Changed from "warning" to "destructive" to match allowed variants
+        variant: "destructive",
       })
     }
   }
@@ -201,6 +228,7 @@ export default function Component() {
     try {
       const formData = new FormData()
       
+      // Append all fields with proper error checking
       formData.append('photo', selectedFile)
       formData.append('type', userType === 'tenant' ? 'tenant' : userType === 'special' ? 'special' : 'employee')
       formData.append('streetName', userType === 'tenant' || userType === 'special' ? "Topstraat" : selectedAddress.street)
@@ -209,19 +237,26 @@ export default function Component() {
       formData.append('structuralDefects', structuralDefects.toString())
       formData.append('decayMagnitude', decayMagnitude.toString())
       formData.append('defectIntensity', defectIntensity.toString())
-      formData.append('description', description)
+      formData.append('description', description || '') // Ensure description is never undefined
       formData.append('submittedBy', userType === 'employee' ? email : '')
+      
+      // Only append location if it exists
+      if (location) {
+        formData.append('latitude', location.latitude.toString())
+        formData.append('longitude', location.longitude.toString())
+      }
   
       const response = await fetch('/api/submissions', {
         method: 'POST',
         body: formData,
       })
   
-      const data = await response.json()
-  
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit the assessment')
+        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }))
+        throw new Error(errorData.error || 'Failed to submit the assessment')
       }
+  
+      const data = await response.json()
   
       clearInterval(progressInterval)
       setUploadProgress(100)
@@ -347,32 +382,33 @@ export default function Component() {
         </Button>
       </CardContent>
     </Card>,
-    // Step 3: Camera View
-    <Card key="camera" className="w-full max-w-md mx-auto">
+    // Step 3: Capture Photo (updated to show location status)
+    <Card key="capture" className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Take Photo</CardTitle>
-        <CardDescription>Position the camera to capture the area clearly</CardDescription>
+        <CardTitle>Capture Photo</CardTitle>
+        <CardDescription>Please take a photo of the issue</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-          />
-          <canvas ref={canvasRef} className="hidden" />
+      <CardContent className="space-y-4">
+        <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+          <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Button variant="outline" onClick={() => setCurrentStep(2)}>
-            Cancel
-          </Button>
+        <div className="flex justify-between items-center">
           <Button onClick={capturePhoto}>
-            Capture Photo
+            <Camera className="mr-2 h-4 w-4" /> Capture Photo
           </Button>
+          {location ? (
+            <div className="flex items-center text-sm text-green-600">
+              <MapPin className="mr-1 h-4 w-4" /> Location captured
+            </div>
+          ) : (
+            <div className="flex items-center text-sm text-yellow-600">
+              <MapPin className="mr-1 h-4 w-4" /> Accessing location...
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>,
+
     // Step 4: Photo Comparison (updated for tenant and special user)
     <Card key="comparison" className="w-full max-w-md mx-auto">
       <CardHeader>
