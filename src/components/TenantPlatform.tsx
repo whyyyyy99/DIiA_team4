@@ -812,12 +812,11 @@ export default function Component() {
 ]
 
   const adminSteps = [
-    // Step 20: Admin Dashboard
     <AdminDashboard
       key="adminDashboard"
       onLogout={handleLogout}
-    />,
-  ]
+  />,
+]
 
   const loginStep = (
     <Card className="w-full max-w-md mx-auto">

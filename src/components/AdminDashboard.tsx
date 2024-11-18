@@ -49,6 +49,10 @@ interface Submission {
   longitude?: number
 }
 
+interface AdminDashboardProps {
+  onLogout: () => void
+}
+
 export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
@@ -115,7 +119,7 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground">Manage and view all submissions</p>
         </div>
-        <Button variant="outline" onClick={() => window.location.href = '/'}>
+        <Button variant="outline" onClick={onLogout}>
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
       </div>
