@@ -43,7 +43,7 @@ export default function Component() {
   const [description, setDescription] = useState("")
   const [uploadedPhotosCount, setUploadedPhotosCount] = useState(0)
   const [userType, setUserType] = useState<UserType>(null)
-  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [_submissions, setSubmissions] = useState<Submission[]>([])
   const [selectedAddress, setSelectedAddress] = useState({ street: "", number: "", city: "" })
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -254,9 +254,10 @@ export default function Component() {
   
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedDescription(description)
+      // Use debouncedDescription here if needed
+      console.log("Debounced description:", description)
     }, 300)
-  
+
     return () => clearTimeout(timer)
   }, [description])
 

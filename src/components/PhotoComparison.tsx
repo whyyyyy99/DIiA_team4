@@ -23,7 +23,7 @@ export function PhotoComparison({ referenceImageSrc, capturedImageSrc, onCompari
       const capturedImage = tf.browser.fromPixels(capturedImageRef.current)
 
       // Resize images to the same dimensions
-      const targetSize: [number, number] = [224, 224] // Fixed type annotation
+      const targetSize: [number, number] = [224, 224]
       const resizedReference = tf.image.resizeBilinear(referenceImage, targetSize)
       const resizedCaptured = tf.image.resizeBilinear(capturedImage, targetSize)
 
@@ -39,7 +39,8 @@ export function PhotoComparison({ referenceImageSrc, capturedImageSrc, onCompari
       const mse = tf.mean(tf.square(tf.sub(normalizedReference, normalizedCaptured)))
 
       // Convert MSE to a similarity score (0-100)
-      const similarityScore = 100 - (await mse.array() * 100)
+      const mseValue = await mse.array()
+      const similarityScore = 100 - (mseValue as number * 100)
       setComparisonScore(similarityScore)
       onComparisonComplete(similarityScore)
 
