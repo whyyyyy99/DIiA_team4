@@ -1,15 +1,8 @@
-"use client"
+'use client'
 
-import { useState, useEffect, useCallback } from "react"
-import { LogOut, Eye, Users, Home, Building2, BarChart3, Search, Filter, Calendar } from 'lucide-react'
-import Image from "next/image"
+import { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+import { Card } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -18,285 +11,310 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
-type SubmissionType = 'tenant' | 'employee';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { LogOut, AlertCircle, FileSpreadsheet, Users, BarChart3, MapPin, Eye } from 'lucide-react'
+import { format } from 'date-fns'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface Submission {
-  id: string;
-  type: SubmissionType;
-  streetName: string;
-  apartmentNumber: string;
-  city: string;
-  structuralDefects: number;
-  decayMagnitude: number;
-  defectIntensity: number;
-  description: string;
-  photoUrl: string;
-  date: string;
-  submittedBy?: string;
+  id: string
+  type: string
+  streetName: string
+  apartmentNumber: string
+  city: string
+  structuralDefects: number
+  decayMagnitude: number
+  defectIntensity: number
+  description: string
+  photoUrl: string
+  date: string
+  submittedBy?: string
+  latitude?: number
+  longitude?: number
 }
 
-interface DashboardProps {
-  onLogout: () => void;
-}
-
-export default function AdminDashboard({ onLogout }: DashboardProps) {
+export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filterType, setFilterType] = useState<SubmissionType | 'all'>('all')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [isLoading, setIsLoading] = useState(true)
-  const { toast } = useToast()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState('all')
+  const [sortOrder, setSortOrder] = useState('newest')
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const fetchSubmissions = useCallback(async () => {
-    setIsLoading(true)
+  const fetchSubmissions = async () => {
     try {
+      setLoading(true)
+      setError(null)
       const response = await fetch('/api/submissions')
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch submissions')
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
+      
       const data = await response.json()
       setSubmissions(data)
-    } catch (error) {
-      console.error('Error fetching submissions:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch submissions. Please try again.",
-        variant: "destructive",
-      })
+    } catch (err) {
+      setError('Failed to fetch submissions. Please try again.')
+      console.error('Fetch error:', err)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
-  }, [toast])
+  }
 
   useEffect(() => {
     fetchSubmissions()
-  }, [fetchSubmissions])
+  }, [])
 
-  const filteredSubmissions = submissions.filter(submission => {
-    const matchesSearch = submission.streetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         submission.city.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesType = filterType === 'all' || submission.type === filterType
-    return matchesSearch && matchesType
-  }).sort((a, b) => {
-    const dateA = new Date(a.date).getTime()
-    const dateB = new Date(b.date).getTime()
-    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
-  })
+  const filteredSubmissions = submissions
+    .filter(submission => {
+      if (filter === 'all') return true
+      return submission.type.toLowerCase() === filter.toLowerCase()
+    })
+    .filter(submission => {
+      const searchString = `${submission.streetName} ${submission.apartmentNumber} ${submission.city}`.toLowerCase()
+      return searchString.includes(searchTerm.toLowerCase())
+    })
+    .sort((a, b) => {
+      if (sortOrder === 'newest') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime()
+      }
+      return new Date(a.date).getTime() - new Date(b.date).getTime()
+    })
 
-  const stats = {
-    total: submissions.length,
-    tenant: submissions.filter(s => s.type === 'tenant').length,
-    employee: submissions.filter(s => s.type === 'employee').length,
-    averageDefectScore: submissions.length > 0 
-      ? Math.round(submissions.reduce((acc, curr) => 
-          acc + (curr.structuralDefects + curr.decayMagnitude + curr.defectIntensity) / 3, 0
-        ) / submissions.length * 10) / 10
-      : 0
+  const getAverageDefectScore = (submissions: Submission[]) => {
+    if (submissions.length === 0) return 0
+    const total = submissions.reduce((acc, sub) => 
+      acc + (sub.structuralDefects + sub.decayMagnitude + sub.defectIntensity) / 3, 0
+    )
+    return Math.round((total / submissions.length) * 10) / 10
   }
 
+  const getTenantReports = () => submissions.filter(s => s.type === 'tenant').length
+  const getEmployeeReports = () => submissions.filter(s => s.type === 'employee').length
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>Admin Dashboard</CardTitle>
-              <CardDescription>Manage and view all submissions</CardDescription>
-            </div>
-            <Button variant="outline" onClick={onLogout}>
-              <LogOut className="mr-2 h-4 w-4" /> Sign Out
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6">
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.total}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Tenant Reports</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.tenant}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Employee Reports</CardTitle>
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.employee}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Avg. Defect Score</CardTitle>
-                  <Home className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.averageDefectScore}</div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by address or city..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-              <Select
-                value={filterType}
-                onValueChange={(value) => setFilterType(value as SubmissionType | 'all')}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Submissions</SelectItem>
-                  <SelectItem value="tenant">Tenant Reports</SelectItem>
-                  <SelectItem value="employee">Employee Reports</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={sortOrder}
-                onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Sort by date" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="desc">Newest First</SelectItem>
-                  <SelectItem value="asc">Oldest First</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Submissions Table */}
-            {isLoading ? (
-              <div className="text-center py-6">Loading submissions...</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Defect Score</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSubmissions.map((submission) => (
-                    <TableRow key={submission.id}>
-                      <TableCell>{`${submission.streetName}, ${submission.apartmentNumber}, ${submission.city}`}</TableCell>
-                      <TableCell>
-                        <Badge variant={submission.type === 'tenant' ? 'default' : 'secondary'}>
-                          {submission.type === 'tenant' ? 'Tenant' : 'Employee'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{new Date(submission.date).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        {((submission.structuralDefects + submission.decayMagnitude + submission.defectIntensity) / 3).toFixed(1)}
-                      </TableCell>
-                      <TableCell>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4 mr-2" /> View Details
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl">
-      <DialogHeader>
-        <DialogTitle>Submission Details</DialogTitle>
-        <DialogDescription>
-          Submitted on {new Date(submission.date).toLocaleDateString()} at{' '}
-          {new Date(submission.date).toLocaleTimeString()}
-        </DialogDescription>
-      </DialogHeader>
-      <div className="grid grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div className="rounded-lg overflow-hidden bg-muted">
-            {submission.photoUrl ? (
-              <Image
-                src={submission.photoUrl}
-                alt="Submitted photo"
-                width={400}
-                height={300}
-                className="w-full object-cover"
-                unoptimized // Add this for external URLs
-              />
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                No photo available
-              </div>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Structural Defects:</span>
-              <Badge variant="outline">{submission.structuralDefects}/6</Badge>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Decay Magnitude:</span>
-              <Badge variant="outline">{submission.decayMagnitude}/6</Badge>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Defect Intensity:</span>
-              <Badge variant="outline">{submission.defectIntensity}/6</Badge>
-            </div>
-            <div className="pt-2">
-              <span className="font-medium">Description:</span>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {submission.description || "No description provided"}
-              </p>
-            </div>
-            {submission.submittedBy && (
-              <div className="pt-2">
-                <span className="font-medium">Submitted by:</span>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {submission.submittedBy}
-                </p>
-              </div>
-            )}
-          </div>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage and view all submissions</p>
         </div>
+        <Button variant="outline" onClick={() => window.location.href = '/'}>
+          <LogOut className="mr-2 h-4 w-4" /> Sign Out
+        </Button>
       </div>
-    </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-            {filteredSubmissions.length === 0 && !isLoading && (
-              <div className="text-center py-6 text-muted-foreground">
-                No submissions found matching your criteria
-              </div>
-            )}
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center space-x-2">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="text-sm font-medium">Total Submissions</span>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-2xl font-bold">{submissions.length}</p>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center space-x-2">
+            <Users className="h-4 w-4" />
+            <span className="text-sm font-medium">Tenant Reports</span>
+          </div>
+          <p className="text-2xl font-bold">{getTenantReports()}</p>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center space-x-2">
+            <Users className="h-4 w-4" />
+            <span className="text-sm font-medium">Employee Reports</span>
+          </div>
+          <p className="text-2xl font-bold">{getEmployeeReports()}</p>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center space-x-2">
+            <BarChart3 className="h-4 w-4" />
+            <span className="text-sm font-medium">Avg. Defect Score</span>
+          </div>
+          <p className="text-2xl font-bold">{getAverageDefectScore(submissions)}</p>
+        </Card>
+      </div>
+
+      <div className="flex gap-4">
+        <Input
+          placeholder="Search address..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-xs"
+        />
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Submissions" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Submissions</SelectItem>
+            <SelectItem value="tenant">Tenant Only</SelectItem>
+            <SelectItem value="employee">Employee Only</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortOrder} onValueChange={setSortOrder}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort by date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest First</SelectItem>
+            <SelectItem value="oldest">Oldest First</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Address</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Defect Score</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center">Loading submissions...</TableCell>
+              </TableRow>
+            ) : filteredSubmissions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center">No submissions found matching your criteria</TableCell>
+              </TableRow>
+            ) : (
+              filteredSubmissions.map((submission) => (
+                <TableRow key={submission.id}>
+                  <TableCell>
+                    {submission.streetName} {submission.apartmentNumber}, {submission.city}
+                  </TableCell>
+                  <TableCell className="capitalize">{submission.type}</TableCell>
+                  <TableCell>{format(new Date(submission.date), 'dd/MM/yyyy HH:mm')}</TableCell>
+                  <TableCell className="max-w-[200px]">
+                    <p className="truncate" title={submission.description}>
+                      {submission.description || 'No description provided'}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    {submission.latitude && submission.longitude ? (
+                      <div className="flex items-center gap-1" title={`${submission.latitude}, ${submission.longitude}`}>
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          {submission.latitude.toFixed(4)}, {submission.longitude.toFixed(4)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">No location data</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {((submission.structuralDefects + submission.decayMagnitude + submission.defectIntensity) / 3).toFixed(1)}
+                  </TableCell>
+                  <TableCell>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                          <Eye className="h-4 w-4" />
+                          View Details
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl">
+                        <DialogHeader>
+                          <DialogTitle>Submission Details</DialogTitle>
+                          <DialogDescription>
+                            Submitted on {format(new Date(submission.date), 'dd MMMM yyyy HH:mm')}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <div>
+                              <h3 className="font-semibold mb-1">Location Details</h3>
+                              <p className="text-sm">
+                                {submission.streetName} {submission.apartmentNumber}
+                                <br />
+                                {submission.city}
+                              </p>
+                              {submission.latitude && submission.longitude && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  <MapPin className="h-4 w-4 inline mr-1" />
+                                  {submission.latitude}, {submission.longitude}
+                                </p>
+                              )}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold mb-1">Description</h3>
+                              <p className="text-sm whitespace-pre-wrap">{submission.description}</p>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold mb-1">Defect Assessment</h3>
+                              <div className="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground">Structural</p>
+                                  <p className="font-medium">{submission.structuralDefects}/5</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Decay</p>
+                                  <p className="font-medium">{submission.decayMagnitude}/5</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Intensity</p>
+                                  <p className="font-medium">{submission.defectIntensity}/5</p>
+                                </div>
+                              </div>
+                            </div>
+                            {submission.submittedBy && (
+                              <div>
+                                <h3 className="font-semibold mb-1">Submitted By</h3>
+                                <p className="text-sm">{submission.submittedBy}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold mb-2">Photo</h3>
+                            <div className="aspect-video relative rounded-lg overflow-hidden border">
+                              <img
+                                src={submission.photoUrl}
+                                alt="Submitted defect"
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
