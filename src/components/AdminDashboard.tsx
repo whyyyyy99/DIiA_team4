@@ -11,6 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 type SubmissionType = 'tenant' | 'employee';
 
@@ -184,109 +192,109 @@ export default function AdminDashboard({ onLogout }: DashboardProps) {
               </Select>
             </div>
 
-            {/* Submissions List */}
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList>
-                <TabsTrigger value="all">All Submissions</TabsTrigger>
-                <TabsTrigger value="tenant">Tenant Reports</TabsTrigger>
-                <TabsTrigger value="employee">Employee Reports</TabsTrigger>
-              </TabsList>
-              <TabsContent value="all" className="mt-6">
-                {isLoading ? (
-                  <div className="text-center py-6">Loading submissions...</div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredSubmissions.map((submission) => (
-                      <Card key={submission.id}>
-                        <CardHeader className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <CardTitle className="text-base">
-                                {submission.streetName}, {submission.apartmentNumber}
-                              </CardTitle>
-                              <CardDescription>{submission.city}</CardDescription>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <Badge variant={submission.type === 'tenant' ? 'default' : 'secondary'}>
-                                {submission.type === 'tenant' ? 'Tenant Report' : 'Employee Report'}
-                              </Badge>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="sm">
-                                    <Eye className="h-4 w-4 mr-2" /> View Details
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-4xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Submission Details</DialogTitle>
-                                    <DialogDescription>
-                                      Submitted on {new Date(submission.date).toLocaleDateString()} at{' '}
-                                      {new Date(submission.date).toLocaleTimeString()}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-4">
-                                      <div className="rounded-lg overflow-hidden">
-                                        <Image
-                                          src={submission.photoUrl}
-                                          alt="Submitted photo"
-                                          width={400}
-                                          height={300}
-                                          className="w-full object-cover"
-                                        />
-                                      </div>
-                                      <div className="grid gap-2">
-                                        <div className="flex justify-between items-center">
-                                          <span className="font-medium">Structural Defects:</span>
-                                          <Badge variant="outline">{submission.structuralDefects}/6</Badge>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                          <span className="font-medium">Decay Magnitude:</span>
-                                          <Badge variant="outline">{submission.decayMagnitude}/6</Badge>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                          <span className="font-medium">Defect Intensity:</span>
-                                          <Badge variant="outline">{submission.defectIntensity}/6</Badge>
-                                        </div>
-                                        <div className="pt-2">
-                                          <span className="font-medium">Description:</span>
-                                          <p className="mt-1 text-sm text-muted-foreground">
-                                            {submission.description || "No description provided"}
-                                          </p>
-                                        </div>
-                                        {submission.submittedBy && (
-                                          <div className="pt-2">
-                                            <span className="font-medium">Submitted by:</span>
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                              {submission.submittedBy}
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-                            </div>
-                          </div>
-                        </CardHeader>
-                      </Card>
-                    ))}
-                    {filteredSubmissions.length === 0 && (
-                      <div className="text-center py-6 text-muted-foreground">
-                        No submissions found matching your criteria
-                      </div>
-                    )}
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="tenant" className="mt-6">
-                {/* Similar structure as 'all' tab, but filtered for tenant submissions */}
-              </TabsContent>
-              <TabsContent value="employee" className="mt-6">
-                {/* Similar structure as 'all' tab, but filtered for employee submissions */}
-              </TabsContent>
-            </Tabs>
+            {/* Submissions Table */}
+            {isLoading ? (
+              <div className="text-center py-6">Loading submissions...</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Defect Score</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSubmissions.map((submission) => (
+                    <TableRow key={submission.id}>
+                      <TableCell>{`${submission.streetName}, ${submission.apartmentNumber}, ${submission.city}`}</TableCell>
+                      <TableCell>
+                        <Badge variant={submission.type === 'tenant' ? 'default' : 'secondary'}>
+                          {submission.type === 'tenant' ? 'Tenant' : 'Employee'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(submission.date).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {((submission.structuralDefects + submission.decayMagnitude + submission.defectIntensity) / 3).toFixed(1)}
+                      </TableCell>
+                      <TableCell>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4 mr-2" /> View Details
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl">
+      <DialogHeader>
+        <DialogTitle>Submission Details</DialogTitle>
+        <DialogDescription>
+          Submitted on {new Date(submission.date).toLocaleDateString()} at{' '}
+          {new Date(submission.date).toLocaleTimeString()}
+        </DialogDescription>
+      </DialogHeader>
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div className="rounded-lg overflow-hidden bg-muted">
+            {submission.photoUrl ? (
+              <Image
+                src={submission.photoUrl}
+                alt="Submitted photo"
+                width={400}
+                height={300}
+                className="w-full object-cover"
+                unoptimized // Add this for external URLs
+              />
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No photo available
+              </div>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Structural Defects:</span>
+              <Badge variant="outline">{submission.structuralDefects}/6</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Decay Magnitude:</span>
+              <Badge variant="outline">{submission.decayMagnitude}/6</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Defect Intensity:</span>
+              <Badge variant="outline">{submission.defectIntensity}/6</Badge>
+            </div>
+            <div className="pt-2">
+              <span className="font-medium">Description:</span>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {submission.description || "No description provided"}
+              </p>
+            </div>
+            {submission.submittedBy && (
+              <div className="pt-2">
+                <span className="font-medium">Submitted by:</span>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {submission.submittedBy}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {filteredSubmissions.length === 0 && !isLoading && (
+              <div className="text-center py-6 text-muted-foreground">
+                No submissions found matching your criteria
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

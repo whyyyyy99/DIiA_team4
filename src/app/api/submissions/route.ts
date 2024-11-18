@@ -1,5 +1,23 @@
 import { NextResponse } from 'next/server'
+import { put } from '@vercel/blob'
 import { prisma } from '@/lib/prisma'
+
+export async function GET() {
+  try {
+    const submissions = await prisma.submission.findMany({
+      orderBy: {
+        date: 'desc',
+      },
+    })
+    return NextResponse.json(submissions)
+  } catch (error) {
+    console.error('Error fetching submissions:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch submissions' },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -15,9 +33,10 @@ export async function POST(request: Request) {
     const description = formData.get('description') as string
     const submittedBy = formData.get('submittedBy') as string
 
-    // Here you would typically upload the photo to a storage service
-    // and get back a URL. For this example, we'll use a placeholder URL.
-    const photoUrl = '/placeholder.jpg'
+    // Upload photo to Vercel Blob Storage
+    const blob = await put(`submissions/${Date.now()}-${photo.name}`, photo, {
+      access: 'public',
+    })
 
     const submission = await prisma.submission.create({
       data: {
@@ -29,7 +48,7 @@ export async function POST(request: Request) {
         decayMagnitude,
         defectIntensity,
         description,
-        photoUrl,
+        photoUrl: blob.url, // Store the Blob Storage URL
         submittedBy,
         date: new Date(),
       },
