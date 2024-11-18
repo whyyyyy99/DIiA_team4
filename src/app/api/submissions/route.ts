@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const description = formData.get('description') as string
     const submittedBy = formData.get('submittedBy') as string
 
-    // Upload photo to Vercel Blob Storage
+    // Upload to Vercel Blob
     const blob = await put(`submissions/${Date.now()}-${photo.name}`, photo, {
       access: 'public',
     })
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
         decayMagnitude,
         defectIntensity,
         description,
-        photoUrl: blob.url, // Store the Blob Storage URL
+        photoUrl: blob.url,
         submittedBy,
         date: new Date(),
       },
