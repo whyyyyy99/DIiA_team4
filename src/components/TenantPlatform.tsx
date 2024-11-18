@@ -206,18 +206,21 @@ export default function Component() {
       // Reset form
       resetAssessment()
   
-      // Navigate based on user type
-      if (userType === 'tenant') {
-        setTimeout(() => setCurrentStep(6), 1000)
-      } else if (userType === 'employee') {
-        setTimeout(() => setCurrentStep(15), 1000)
-      }
-  
       toast({
         title: "Submission Successful",
         description: "Your assessment has been submitted.",
         variant: "default",
       })
+  
+      // Navigate based on user type with proper delay
+      if (userType === 'tenant') {
+        setTimeout(() => setCurrentStep(6), 1000)
+      } else if (userType === 'employee') {
+        // Show 100% progress briefly before redirecting
+        setTimeout(() => {
+          setCurrentStep(10) // Return to address selection
+        }, 1500)
+      }
     } catch (error) {
       // Clear the interval on error
       clearInterval(progressInterval)
@@ -709,27 +712,27 @@ export default function Component() {
       </CardContent>
     </Card>,
     // Step 15: Upload Progress
-    <Card key="employeeUploadProgress" className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Uploading Submission</CardTitle>
-        <CardDescription>Please wait while we process your submission</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Progress value={uploadProgress} />
-          <p className="text-sm text-center text-muted-foreground">
-            Processing submission... {uploadProgress}%
-          </p>
-        </div>
-        {uploadProgress === 100 && (
-          <div className="text-center">
-            <p className="font-semibold text-green-600">Upload Complete!</p>
-            <p className="text-sm text-muted-foreground mt-2">Returning to dashboard...</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>,
-  ]
+  <Card key="employeeUploadProgress" className="w-full max-w-md mx-auto">
+  <CardHeader>
+    <CardTitle>Uploading Submission</CardTitle>
+    <CardDescription>Please wait while we process your submission</CardDescription>
+  </CardHeader>
+  <CardContent className="space-y-6">
+    <div className="space-y-2">
+      <Progress value={uploadProgress} />
+      <p className="text-sm text-center text-muted-foreground">
+        Processing submission... {uploadProgress}%
+      </p>
+    </div>
+    {uploadProgress === 100 && (
+      <div className="text-center">
+        <p className="font-semibold text-green-600">Upload Complete!</p>
+        <p className="text-sm text-muted-foreground mt-2">Returning to dashboard...</p>
+      </div>
+    )}
+  </CardContent>
+</Card>,
+]
 
   const adminSteps = [
     // Step 20: Admin Dashboard
