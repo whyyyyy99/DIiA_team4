@@ -119,7 +119,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground">Manage and view all submissions</p>
         </div>
-        <Button variant="outline" onClick={() => onLogout()}>
+        <Button variant="outline" onClick={onLogout}>
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
       </div>
@@ -303,14 +303,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           <div>
                             <h3 className="font-semibold mb-2">Photo</h3>
                             <div className="aspect-video relative rounded-lg overflow-hidden border">
-                              <Image
-                                src={submission.photoUrl}
-                                alt="Submitted defect"
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                priority={false}
-                              />
+                              {submission.photoUrl ? (
+                                <Image
+                                  src={submission.photoUrl}
+                                  alt="Submitted defect"
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                  priority={false}
+                                  unoptimized={process.env.NODE_ENV === 'development'}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-muted">
+                                  <p className="text-muted-foreground">No photo available</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
