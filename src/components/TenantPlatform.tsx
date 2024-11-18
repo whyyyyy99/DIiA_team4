@@ -103,14 +103,14 @@ export default function TenantPlatform() {
       })
       setUserType('tenant')
       setCurrentStep(1) // Start at the first tenant step (Instructions)
-    } else if (email === "kevinweloveyou@kw.com" && password === "employee") {
+    } else if (email === "employee@kw.com" && password === "employee") {
       toast({
         title: "Login successful!",
         description: "Welcome to the KleurijkWonen employee platform!",
       })
       setUserType('employee')
       setCurrentStep(10) // Start at the first employee step
-    } else if (email === "kevin@kw.com" && password === "kleurrijkwonen") {
+    } else if (email === "kevin@kw.com" && password === "admin") {
       toast({
         title: "Login successful!",
         description: "Welcome to the KleurijkWonen admin platform!",
@@ -124,7 +124,6 @@ export default function TenantPlatform() {
         variant: "destructive",
       })
     }
-    // Clear description when logging in
     setDescription("")
   }
 
@@ -133,7 +132,6 @@ export default function TenantPlatform() {
     setPassword("")
     setUserType(null)
     setCurrentStep(0)
-    // Clear description when logging out
     setDescription("")
     toast({
       title: "Logged out",
@@ -148,31 +146,72 @@ export default function TenantPlatform() {
     return "None"
   }
 
-  const handleSubmit = () => {
-    const submissionDate = new Date().toLocaleString()
-    const newSubmission: Submission = {
-      id: Math.random().toString(36).substr(2, 9),
-      type: userType === 'tenant' ? 'tenant' : 'employee',
-      streetName: userType === 'tenant' ? "Topstraat" : selectedAddress.street,
-      apartmentNumber: userType === 'tenant' ? "55" : selectedAddress.number,
-      city: userType === 'tenant' ? "Tiel" : selectedAddress.city,
-      structuralDefects,
-      decayMagnitude,
-      defectIntensity,
-      description,
-      photoUrl: selectedFile ? URL.createObjectURL(selectedFile) : '',
-      date: submissionDate,
-      submittedBy: userType === 'employee' ? email : undefined,
+  const resetAssessment = () => {
+    setStructuralDefects(3)
+    setDecayMagnitude(3)
+    setDefectIntensity(3)
+    setDescription("")
+    setSelectedFile(null)
+  }
+
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "Error",
+        description: "Please capture a photo before submitting.",
+        variant: "destructive",
+      })
+      return
     }
-    setSubmissions([...submissions, newSubmission])
-    setUploadedPhotosCount(prev => prev + 1)
-    
-    if (userType === 'tenant') {
-      setCurrentStep(6) // Move to the Thank you and rewards page for tenants
-    } else if (userType === 'employee') {
-      setCurrentStep(15) // Move to the upload progress page for employees
+
+    const formData = new FormData()
+    formData.append('photo', selectedFile)
+    formData.append('type', userType === 'tenant' ? 'tenant' : 'employee')
+    formData.append('streetName', userType === 'tenant' ? "Topstraat" : selectedAddress.street)
+    formData.append('apartmentNumber', userType === 'tenant' ? "55" : selectedAddress.number)
+    formData.append('city', userType === 'tenant' ? "Tiel" : selectedAddress.city)
+    formData.append('structuralDefects', structuralDefects.toString())
+    formData.append('decayMagnitude', decayMagnitude.toString())
+    formData.append('defectIntensity', defectIntensity.toString())
+    formData.append('description', description)
+    formData.append('submittedBy', userType === 'employee' ? email : '')
+
+    try {
+      const response = await fetch('/api/submissions', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit')
+      }
+
+      const result = await response.json()
+      setSubmissions(prevSubmissions => [...prevSubmissions, result])
+      setUploadedPhotosCount(prev => prev + 1)
+      
+      resetAssessment()
+
+      if (userType === 'tenant') {
+        setCurrentStep(6) // Move to the Thank you and rewards page for tenants
+      } else if (userType === 'employee') {
+        setCurrentStep(15) // Move to the upload progress page for employees
+      }
+      simulateUpload()
+
+      toast({
+        title: "Submission Successful",
+        description: "Your assessment has been submitted.",
+        variant: "success",
+      })
+    } catch (error) {
+      console.error('Submission error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to submit the assessment. Please try again.",
+        variant: "destructive",
+      })
     }
-    simulateUpload()
   }
 
   const simulateUpload = () => {
@@ -657,7 +696,6 @@ export default function TenantPlatform() {
     // Step 20: Admin Dashboard
     <AdminDashboard
       key="adminDashboard"
-      submissions={submissions}
       onLogout={handleLogout}
     />,
   ]
