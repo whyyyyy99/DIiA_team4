@@ -157,9 +157,9 @@ export default function TenantPlatform() {
   const handleSubmit = async () => {
     if (!selectedFile) {
       toast({
-        title: "Error",
-        description: "Please capture a photo before submitting.",
-        variant: "destructive",
+        title: "Submission Successful",
+        description: "Your assessment has been submitted.",
+        variant: "default", // Changed from "success" to "default"
       })
       return
     }
