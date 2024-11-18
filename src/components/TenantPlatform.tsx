@@ -167,15 +167,14 @@ export default function Component() {
     // Start upload progress animation
     setUploadProgress(0)
     const progressInterval = setInterval(() => {
-      setUploadProgress(prev => Math.min(prev + 10, 90)) // Only go up to 90% until actual completion
+      setUploadProgress(prev => Math.min(prev + 10, 90))
     }, 500)
   
     try {
       const formData = new FormData()
       
-      // Convert the file to a smaller size before upload if needed
-      const compressedFile = selectedFile
-      formData.append('photo', compressedFile)
+      // Add all required fields
+      formData.append('photo', selectedFile)
       formData.append('type', userType === 'tenant' ? 'tenant' : 'employee')
       formData.append('streetName', userType === 'tenant' ? "Topstraat" : selectedAddress.street)
       formData.append('apartmentNumber', userType === 'tenant' ? "55" : selectedAddress.number)
@@ -191,18 +190,18 @@ export default function Component() {
         body: formData,
       })
   
+      const data = await response.json()
+  
       if (!response.ok) {
-        throw new Error(await response.text())
+        throw new Error(data.error || 'Failed to submit the assessment')
       }
   
-      const result = await response.json()
-      
       // Clear the interval and set progress to 100%
       clearInterval(progressInterval)
       setUploadProgress(100)
   
       // Update local state
-      setSubmissions(prevSubmissions => [...prevSubmissions, result])
+      setSubmissions(prevSubmissions => [...prevSubmissions, data])
       setUploadedPhotosCount(prev => prev + 1)
       
       // Reset form
