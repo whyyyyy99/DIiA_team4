@@ -14,11 +14,11 @@ import { Progress } from "@/components/ui/progress"
 import AdminDashboard from "./AdminDashboard"
 import { PhotoComparison } from './PhotoComparison'
 
-type UserType = 'tenant' | 'employee' | 'admin' | null;
+type UserType = 'tenant' | 'employee' | 'admin' | 'special' | null;
 
 type Submission = {
   id: string;
-  type: 'tenant' | 'employee';
+  type: 'tenant' | 'employee' | 'special';
   streetName: string;
   apartmentNumber: string;
   city: string;
@@ -120,6 +120,13 @@ export default function Component() {
       })
       setUserType('admin')
       setCurrentStep(20)
+    } else if (email === "xyz@gmail.com" && password === "black") {
+      toast({
+        title: "Login successful!",
+        description: "Welcome to the special KleurijkWonen platform!",
+      })
+      setUserType('special')
+      setCurrentStep(1)
     } else {
       toast({
         title: "Login failed",
@@ -195,10 +202,10 @@ export default function Component() {
       const formData = new FormData()
       
       formData.append('photo', selectedFile)
-      formData.append('type', userType === 'tenant' ? 'tenant' : 'employee')
-      formData.append('streetName', userType === 'tenant' ? "Topstraat" : selectedAddress.street)
-      formData.append('apartmentNumber', userType === 'tenant' ? "55" : selectedAddress.number)
-      formData.append('city', userType === 'tenant' ? "Tiel" : selectedAddress.city)
+      formData.append('type', userType === 'tenant' ? 'tenant' : userType === 'special' ? 'special' : 'employee')
+      formData.append('streetName', userType === 'tenant' || userType === 'special' ? "Topstraat" : selectedAddress.street)
+      formData.append('apartmentNumber', userType === 'tenant' || userType === 'special' ? "55" : selectedAddress.number)
+      formData.append('city', userType === 'tenant' || userType === 'special' ? "Tiel" : selectedAddress.city)
       formData.append('structuralDefects', structuralDefects.toString())
       formData.append('decayMagnitude', decayMagnitude.toString())
       formData.append('defectIntensity', defectIntensity.toString())
@@ -230,7 +237,7 @@ export default function Component() {
         variant: "default",
       })
   
-      if (userType === 'tenant') {
+      if (userType === 'tenant' || userType === 'special') {
         setTimeout(() => setCurrentStep(6), 1000)
       } else if (userType === 'employee') {
         setTimeout(() => {
@@ -250,24 +257,31 @@ export default function Component() {
     }
   }
   
-  const [debouncedDescription, setDebouncedDescription] = useState(description)
-  
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Use debouncedDescription here if needed
       console.log("Debounced description:", description)
     }, 300)
-
+  
     return () => clearTimeout(timer)
   }, [description])
 
   useEffect(() => {
-    if ((currentStep === 3 && userType === 'tenant') || (currentStep === 12 && userType === 'employee')) {
+    if ((currentStep === 3 && (userType === 'tenant' || userType === 'special')) || (currentStep === 12 && userType === 'employee')) {
       startCamera()
     } else {
       stopCamera()
     }
   }, [currentStep, userType, startCamera, stopCamera])
+
+  const getExamplePhotoSrc = () => {
+    if (userType === 'special') {
+      return "/images/black.png"
+    } else if (userType === 'tenant') {
+      return "/images/window-frame1.png"
+    } else {
+      return "/images/door-handle.png"
+    }
+  }
 
   const tenantSteps = [
     // Step 1: Instructions
@@ -359,7 +373,7 @@ export default function Component() {
         </div>
       </CardContent>
     </Card>,
-    // Step 4: Photo Comparison (updated for tenant)
+    // Step 4: Photo Comparison (updated for tenant and special user)
     <Card key="comparison" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Compare Photos</CardTitle>
@@ -368,7 +382,7 @@ export default function Component() {
       <CardContent className="space-y-6">
         {showPhotoComparison ? (
           <PhotoComparison
-            referenceImageSrc="/images/window-frame1.png"
+            referenceImageSrc={getExamplePhotoSrc()}
             capturedImageSrc={selectedFile ? URL.createObjectURL(selectedFile) : ''}
             onComparisonComplete={handleComparisonComplete}
           />
@@ -378,8 +392,8 @@ export default function Component() {
               <Label>Example Photo</Label>
               <div className="rounded-lg overflow-hidden">
                 <Image
-                  src="/images/window-frame1.png"
-                  alt="Example window frame"
+                  src={getExamplePhotoSrc()}
+                  alt="Example photo"
                   width={200}
                   height={150}
                   className="w-full object-cover"
@@ -770,18 +784,9 @@ export default function Component() {
   ]
 
   const loginStep = (
-    <Card key="login" className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <div className="flex justify-center mb-6">
-          <Image
-            src="/images/logo.png"
-            alt="KleurijkWonen Logo"
-            width={200}
-            height={80}
-            className="rounded-lg"
-          />
-        </div>
-        <CardTitle>Login to Your Account</CardTitle>
+        <CardTitle>Login</CardTitle>
         <CardDescription>Enter your credentials to access the platform</CardDescription>
       </CardHeader>
       <CardContent>
@@ -791,9 +796,9 @@ export default function Component() {
             <Input
               id="email"
               type="email"
+              placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
               required
             />
           </div>
@@ -802,14 +807,14 @@ export default function Component() {
             <Input
               id="password"
               type="password"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
               required
             />
           </div>
           <Button type="submit" className="w-full">
-            <LogIn className="mr-2 h-4 w-4" /> Log In
+            <LogIn className="mr-2 h-4 w-4" /> Login
           </Button>
         </form>
       </CardContent>
@@ -820,7 +825,7 @@ export default function Component() {
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="container max-w-lg mx-auto">
         {currentStep === 0 ? loginStep :
-         userType === 'tenant' ? tenantSteps[currentStep - 1] :
+         userType === 'tenant' || userType === 'special' ? tenantSteps[currentStep - 1] :
          userType === 'employee' ? employeeSteps[currentStep - 10] :
          userType === 'admin' ? adminSteps[currentStep - 20] :
          null}
