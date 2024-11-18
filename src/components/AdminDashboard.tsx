@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import Image from 'next/image'
 
 interface Submission {
   id: string
@@ -298,10 +299,13 @@ export default function AdminDashboard() {
                           <div>
                             <h3 className="font-semibold mb-2">Photo</h3>
                             <div className="aspect-video relative rounded-lg overflow-hidden border">
-                              <img
+                              <Image
                                 src={submission.photoUrl}
                                 alt="Submitted defect"
-                                className="object-cover w-full h-full"
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                priority={false}
                               />
                             </div>
                           </div>
