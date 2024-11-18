@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       console.error('Missing BLOB_READ_WRITE_TOKEN environment variable')
       return NextResponse.json(
-        { error: 'Server configuration error' },
+        { error: 'Server configuration error: Missing BLOB_READ_WRITE_TOKEN' },
         { status: 500 }
       )
     }
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     if (!process.env.DATABASE_URL) {
       console.error('Missing DATABASE_URL environment variable')
       return NextResponse.json(
-        { error: 'Server configuration error' },
+        { error: 'Server configuration error: Missing DATABASE_URL' },
         { status: 500 }
       )
     }
@@ -81,14 +81,14 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error('Database error:', error)
       return NextResponse.json(
-        { error: 'Failed to save submission to database' },
+        { error: 'Failed to save submission to database. Error: ' + (error instanceof Error ? error.message : String(error)) },
         { status: 500 }
       )
     }
   } catch (error) {
     console.error('Submission creation error:', error)
     return NextResponse.json(
-      { error: 'Failed to process submission' },
+      { error: 'Failed to process submission. Error: ' + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     )
   }
@@ -99,7 +99,7 @@ export async function GET() {
     if (!process.env.DATABASE_URL) {
       console.error('Missing DATABASE_URL environment variable')
       return NextResponse.json(
-        { error: 'Server configuration error' },
+        { error: 'Server configuration error: Missing DATABASE_URL' },
         { status: 500 }
       )
     }
@@ -113,8 +113,8 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching submissions:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch submissions' },
+      { error: 'Failed to fetch submissions. Error: ' + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     )
   }
-} 
+}

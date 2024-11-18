@@ -173,7 +173,6 @@ export default function Component() {
     try {
       const formData = new FormData()
       
-      // Add all required fields
       formData.append('photo', selectedFile)
       formData.append('type', userType === 'tenant' ? 'tenant' : 'employee')
       formData.append('streetName', userType === 'tenant' ? "Topstraat" : selectedAddress.street)
@@ -209,7 +208,7 @@ export default function Component() {
   
       // Navigate based on user type
       if (userType === 'tenant') {
-        setTimeout(() => setCurrentStep(6), 1000) // Delay to show 100% progress
+        setTimeout(() => setCurrentStep(6), 1000)
       } else if (userType === 'employee') {
         setTimeout(() => setCurrentStep(15), 1000)
       }
