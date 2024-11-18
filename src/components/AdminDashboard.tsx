@@ -32,6 +32,10 @@ import {
 } from "@/components/ui/dialog"
 import Image from 'next/image'
 
+interface AdminDashboardProps {
+  onLogout: () => void
+}
+
 interface Submission {
   id: string
   type: string
@@ -49,11 +53,7 @@ interface Submission {
   longitude?: number
 }
 
-interface AdminDashboardProps {
-  onLogout: () => void
-}
-
-export default function AdminDashboard() {
+export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -119,7 +119,7 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground">Manage and view all submissions</p>
         </div>
-        <Button variant="outline" onClick={onLogout}>
+        <Button variant="outline" onClick={() => onLogout()}>
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
       </div>
