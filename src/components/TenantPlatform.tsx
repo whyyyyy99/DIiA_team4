@@ -171,7 +171,7 @@ export default function Component() {
       toast({
         title: "Photo might need adjustment",
         description: "Try to match the angle and framing of the reference photo more closely.",
-        variant: "warning",
+        variant: "destructive", // Changed from "warning" to "destructive" to match allowed variants
       })
     }
   }
