@@ -30,7 +30,7 @@ type Submission = {
   submittedBy?: string;
 };
 
-export default function TenantPlatform() {
+export default function Component() {
   const [currentStep, setCurrentStep] = useState(0)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -163,56 +163,87 @@ export default function TenantPlatform() {
       })
       return
     }
-
-    const formData = new FormData()
-    formData.append('photo', selectedFile)
-    formData.append('type', userType === 'tenant' ? 'tenant' : 'employee')
-    formData.append('streetName', userType === 'tenant' ? "Beststraat" : selectedAddress.street)
-    formData.append('apartmentNumber', userType === 'tenant' ? "77" : selectedAddress.number)
-    formData.append('city', userType === 'tenant' ? "Utrecht" : selectedAddress.city)
-    formData.append('structuralDefects', structuralDefects.toString())
-    formData.append('decayMagnitude', decayMagnitude.toString())
-    formData.append('defectIntensity', defectIntensity.toString())
-    formData.append('description', description)
-    formData.append('submittedBy', userType === 'employee' ? email : '')
-
+  
+    // Start upload progress animation
+    setUploadProgress(0)
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + 10, 90)) // Only go up to 90% until actual completion
+    }, 500)
+  
     try {
+      const formData = new FormData()
+      
+      // Convert the file to a smaller size before upload if needed
+      const compressedFile = selectedFile
+      formData.append('photo', compressedFile)
+      formData.append('type', userType === 'tenant' ? 'tenant' : 'employee')
+      formData.append('streetName', userType === 'tenant' ? "Topstraat" : selectedAddress.street)
+      formData.append('apartmentNumber', userType === 'tenant' ? "55" : selectedAddress.number)
+      formData.append('city', userType === 'tenant' ? "Tiel" : selectedAddress.city)
+      formData.append('structuralDefects', structuralDefects.toString())
+      formData.append('decayMagnitude', decayMagnitude.toString())
+      formData.append('defectIntensity', defectIntensity.toString())
+      formData.append('description', description)
+      formData.append('submittedBy', userType === 'employee' ? email : '')
+  
       const response = await fetch('/api/submissions', {
         method: 'POST',
         body: formData,
       })
-
+  
       if (!response.ok) {
-        throw new Error('Failed to submit')
+        throw new Error(await response.text())
       }
-
+  
       const result = await response.json()
+      
+      // Clear the interval and set progress to 100%
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+  
+      // Update local state
       setSubmissions(prevSubmissions => [...prevSubmissions, result])
       setUploadedPhotosCount(prev => prev + 1)
       
+      // Reset form
       resetAssessment()
-
+  
+      // Navigate based on user type
       if (userType === 'tenant') {
-        setCurrentStep(6) // Move to the Thank you and rewards page for tenants
+        setTimeout(() => setCurrentStep(6), 1000) // Delay to show 100% progress
       } else if (userType === 'employee') {
-        setCurrentStep(15) // Move to the upload progress page for employees
+        setTimeout(() => setCurrentStep(15), 1000)
       }
-      simulateUpload()
-
+  
       toast({
         title: "Submission Successful",
         description: "Your assessment has been submitted.",
         variant: "default",
       })
     } catch (error) {
+      // Clear the interval on error
+      clearInterval(progressInterval)
+      setUploadProgress(0)
+      
       console.error('Submission error:', error)
       toast({
         title: "Error",
-        description: "Failed to submit the assessment. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit the assessment. Please try again.",
         variant: "destructive",
       })
     }
   }
+  
+  // Add debounced description update
+  const [debouncedDescription, setDebouncedDescription] = useState(description)
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedDescription(description)
+    }, 300)
+  
+    return () => clearTimeout(timer)
+  }, [description])
 
   const simulateUpload = () => {
     setUploadProgress(0)
@@ -354,7 +385,7 @@ export default function TenantPlatform() {
               <div className="rounded-lg overflow-hidden">
                 <Image
                   src={URL.createObjectURL(selectedFile)}
-                  alt="Your uploaded photo"
+                alt="Your uploaded photo"
                   width={200}
                   height={150}
                   className="w-full object-cover"
@@ -409,7 +440,12 @@ export default function TenantPlatform() {
               id="description"
               placeholder="Any additional observations..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value
+                requestAnimationFrame(() => {
+                  setDescription(value)
+                })
+              }}
               className="min-h-[100px]"
             />
           </div>
@@ -659,7 +695,12 @@ export default function TenantPlatform() {
               id="description"
               placeholder="Provide detailed observations..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value
+                requestAnimationFrame(() => {
+                  setDescription(value)
+                })
+              }}
               className="min-h-[100px]"
             />
           </div>
