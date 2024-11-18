@@ -11,18 +11,82 @@
 // import { Progress } from "@/components/ui/progress"
 // import { useToast } from "@/components/ui/use-toast"
 
-// type Submission = {
-//   id: string;
-//   streetName: string;
-//   apartmentNumber: string;
-//   city: string;
-//   structuralDefects: number;
-//   decayMagnitude: number;
-//   defectIntensity: number;
-//   description: string;
-//   photoUrl: string;
-//   date: string;
-// };
+// const handleSubmit = async () => {
+//     const photoUrl = selectedFile ? URL.createObjectURL(selectedFile) : ''
+  
+//     const submissionData = {
+//       type: 'employee',
+//       streetName: selectedAddress.street,
+//       apartmentNumber: selectedAddress.number,
+//       city: selectedAddress.city,
+//       structuralDefects,
+//       decayMagnitude,
+//       defectIntensity,
+//       description,
+//       photoUrl,
+//       submittedBy: email,
+//     }
+  
+//     try {
+//       // First, create the submission
+//       const submissionResponse = await fetch('/api/submissions', {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//         body: JSON.stringify(submissionData),
+//       })
+  
+//       if (!submissionResponse.ok) {
+//         throw new Error('Failed to create submission')
+//       }
+  
+//       const { id: submissionId } = await submissionResponse.json()
+  
+//       // Then, analyze the condition
+//       const analysisResponse = await fetch('/api/analyze', {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//         body: JSON.stringify({ 
+//           assessment: {
+//             structuralDefects,
+//             decayMagnitude,
+//             defectIntensity,
+//             description,
+//           }, 
+//           submissionId, 
+//           photoUrl 
+//         }),
+//       })
+  
+//       if (!analysisResponse.ok) {
+//         throw new Error('Failed to analyze condition')
+//       }
+  
+//       const { analysis } = await analysisResponse.json()
+//       setAnalysisReport(analysis)
+  
+//       setCurrentStep(6) // Move to the analysis report step
+//       simulateUpload()
+  
+//       console.log('Submission successful:', { submissionId, analysis })
+  
+//       toast({
+//         title: "Submission Successful",
+//         description: "Your assessment has been submitted and analyzed.",
+//         variant: "success",
+//       })
+//     } catch (error) {
+//       console.error('Submission error:', error)
+//       toast({
+//         title: "Error",
+//         description: "Failed to submit and analyze the condition. Please try again.",
+//         variant: "destructive",
+//       })
+//     }
+//   }
 
 // export default function EmployeePlatform() {
 //   const [currentStep, setCurrentStep] = useState(0)
