@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import React, { useState, useRef, useEffect, useCallback } from "react"
 import { Camera, LogIn, LogOut, Gift, ChevronRight, ChevronLeft, Info } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import AdminDashboard from "./AdminDashboard"
+import { PhotoComparison } from './PhotoComparison'
 
 type UserType = 'tenant' | 'employee' | 'admin' | null;
 
@@ -47,6 +48,8 @@ export default function Component() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { toast } = useToast()
+  const [showPhotoComparison, setShowPhotoComparison] = useState(false)
+  const [comparisonScore, setComparisonScore] = useState<number | null>(null)
 
   const startCamera = useCallback(async () => {
     try {
@@ -102,21 +105,21 @@ export default function Component() {
         description: "Welcome to the KleurijkWonen tenant platform!",
       })
       setUserType('tenant')
-      setCurrentStep(1) // Start at the first tenant step (Instructions)
+      setCurrentStep(1)
     } else if (email === "employee@kw.com" && password === "employee") {
       toast({
         title: "Login successful!",
         description: "Welcome to the KleurijkWonen employee platform!",
       })
       setUserType('employee')
-      setCurrentStep(10) // Start at the first employee step
+      setCurrentStep(10)
     } else if (email === "kevin@kw.com" && password === "admin") {
       toast({
         title: "Login successful!",
         description: "Welcome to the KleurijkWonen admin platform!",
       })
       setUserType('admin')
-      setCurrentStep(20) // Start at the admin step
+      setCurrentStep(20)
     } else {
       toast({
         title: "Login failed",
@@ -152,6 +155,25 @@ export default function Component() {
     setDefectIntensity(3)
     setDescription("")
     setSelectedFile(null)
+    setShowPhotoComparison(false)
+    setComparisonScore(null)
+  }
+
+  const handleComparisonComplete = (score: number) => {
+    setComparisonScore(score)
+    if (score >= 80) {
+      toast({
+        title: "Great job!",
+        description: "Your photo is very similar to the reference. You can proceed with the submission.",
+        variant: "default",
+      })
+    } else {
+      toast({
+        title: "Photo might need adjustment",
+        description: "Try to match the angle and framing of the reference photo more closely.",
+        variant: "warning",
+      })
+    }
   }
 
   const handleSubmit = async () => {
@@ -164,7 +186,6 @@ export default function Component() {
       return
     }
   
-    // Start upload progress animation
     setUploadProgress(0)
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => Math.min(prev + 10, 90))
@@ -195,15 +216,12 @@ export default function Component() {
         throw new Error(data.error || 'Failed to submit the assessment')
       }
   
-      // Clear the interval and set progress to 100%
       clearInterval(progressInterval)
       setUploadProgress(100)
   
-      // Update local state
       setSubmissions(prevSubmissions => [...prevSubmissions, data])
       setUploadedPhotosCount(prev => prev + 1)
       
-      // Reset form
       resetAssessment()
   
       toast({
@@ -212,17 +230,14 @@ export default function Component() {
         variant: "default",
       })
   
-      // Navigate based on user type with proper delay
       if (userType === 'tenant') {
         setTimeout(() => setCurrentStep(6), 1000)
       } else if (userType === 'employee') {
-        // Show 100% progress briefly before redirecting
         setTimeout(() => {
-          setCurrentStep(10) // Return to address selection
+          setCurrentStep(10)
         }, 1500)
       }
     } catch (error) {
-      // Clear the interval on error
       clearInterval(progressInterval)
       setUploadProgress(0)
       
@@ -235,7 +250,6 @@ export default function Component() {
     }
   }
   
-  // Add debounced description update
   const [debouncedDescription, setDebouncedDescription] = useState(description)
   
   useEffect(() => {
@@ -245,22 +259,6 @@ export default function Component() {
   
     return () => clearTimeout(timer)
   }, [description])
-
-  const simulateUpload = () => {
-    setUploadProgress(0)
-    const interval = setInterval(() => {
-      setUploadProgress(prevProgress => {
-        if (prevProgress >= 100) {
-          clearInterval(interval)
-          if (userType === 'employee') {
-            setTimeout(() => setCurrentStep(10), 1000) // Return to dashboard after a short delay
-          }
-          return 100
-        }
-        return prevProgress + 10
-      })
-    }, 500)
-  }
 
   useEffect(() => {
     if ((currentStep === 3 && userType === 'tenant') || (currentStep === 12 && userType === 'employee')) {
@@ -360,48 +358,62 @@ export default function Component() {
         </div>
       </CardContent>
     </Card>,
-    // Step 4: Photo Comparison
+    // Step 4: Photo Comparison (updated for tenant)
     <Card key="comparison" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Compare Photos</CardTitle>
         <CardDescription>Please verify that your photo matches the example</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Example Photo</Label>
-            <div className="rounded-lg overflow-hidden">
-              <Image
-                src="/images/window-frame1.png"
-                alt="Example window frame"
-                width={200}
-                height={150}
-                className="w-full object-cover"
-              />
-            </div>
-          </div>
-          <div>
-            <Label>Your Photo</Label>
-            {selectedFile && (
+        {showPhotoComparison ? (
+          <PhotoComparison
+            referenceImageSrc="/images/window-frame1.png"
+            capturedImageSrc={selectedFile ? URL.createObjectURL(selectedFile) : ''}
+            onComparisonComplete={handleComparisonComplete}
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Example Photo</Label>
               <div className="rounded-lg overflow-hidden">
                 <Image
-                  src={URL.createObjectURL(selectedFile)}
-                alt="Your uploaded photo"
+                  src="/images/window-frame1.png"
+                  alt="Example window frame"
                   width={200}
                   height={150}
                   className="w-full object-cover"
                 />
               </div>
-            )}
+            </div>
+            <div>
+              <Label>Your Photo</Label>
+              {selectedFile && (
+                <div className="rounded-lg overflow-hidden">
+                  <Image
+                    src={URL.createObjectURL(selectedFile)}
+                    alt="Your uploaded photo"
+                    width={200}
+                    height={150}
+                    className="w-full object-cover"
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex justify-between">
           <Button variant="outline" onClick={() => setCurrentStep(3)}>
             <ChevronLeft className="mr-2 h-4 w-4" /> Retake Photo
           </Button>
-          <Button onClick={() => setCurrentStep(5)}>
-            Continue <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
+          {showPhotoComparison ? (
+            <Button onClick={() => setCurrentStep(5)} disabled={comparisonScore === null || comparisonScore < 80}>
+              Continue <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={() => setShowPhotoComparison(true)}>
+              Compare Photos
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>,
@@ -593,48 +605,62 @@ export default function Component() {
         </div>
       </CardContent>
     </Card>,
-    // Step 13: Photo Comparison
+    // Step 13: Photo Comparison (new step for employee)
     <Card key="employeeComparison" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Compare Photos</CardTitle>
         <CardDescription>Please verify that your photo matches the example</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Example Photo</Label>
-            <div className="rounded-lg overflow-hidden">
-              <Image
-                src="/images/door-handle.png"
-                alt="Example window frame"
-                width={200}
-                height={150}
-                className="w-full object-cover"
-              />
-            </div>
-          </div>
-          <div>
-            <Label>Your Photo</Label>
-            {selectedFile && (
+        {showPhotoComparison ? (
+          <PhotoComparison
+            referenceImageSrc="/images/door-handle.png"
+            capturedImageSrc={selectedFile ? URL.createObjectURL(selectedFile) : ''}
+            onComparisonComplete={handleComparisonComplete}
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Example Photo</Label>
               <div className="rounded-lg overflow-hidden">
                 <Image
-                  src={URL.createObjectURL(selectedFile)}
-                  alt="Your uploaded photo"
+                  src="/images/door-handle.png"
+                  alt="Example door handle"
                   width={200}
                   height={150}
                   className="w-full object-cover"
                 />
               </div>
-            )}
+            </div>
+            <div>
+              <Label>Your Photo</Label>
+              {selectedFile && (
+                <div className="rounded-lg overflow-hidden">
+                  <Image
+                    src={URL.createObjectURL(selectedFile)}
+                    alt="Your uploaded photo"
+                    width={200}
+                    height={150}
+                    className="w-full object-cover"
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex justify-between">
           <Button variant="outline" onClick={() => setCurrentStep(12)}>
             <ChevronLeft className="mr-2 h-4 w-4" /> Retake Photo
           </Button>
-          <Button onClick={() => setCurrentStep(14)}>
-            Continue <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
+          {showPhotoComparison ? (
+            <Button onClick={() => setCurrentStep(14)} disabled={comparisonScore === null || comparisonScore < 80}>
+              Continue <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={() => setShowPhotoComparison(true)}>
+              Compare Photos
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>,
