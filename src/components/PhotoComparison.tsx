@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as tf from '@tensorflow/tfjs'
+import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 
@@ -22,7 +23,7 @@ export function PhotoComparison({ referenceImageSrc, capturedImageSrc, onCompari
       const capturedImage = tf.browser.fromPixels(capturedImageRef.current)
 
       // Resize images to the same dimensions
-      const targetSize = [224, 224]
+      const targetSize: [number, number] = [224, 224] // Fixed type annotation
       const resizedReference = tf.image.resizeBilinear(referenceImage, targetSize)
       const resizedCaptured = tf.image.resizeBilinear(capturedImage, targetSize)
 
@@ -60,11 +61,29 @@ export function PhotoComparison({ referenceImageSrc, capturedImageSrc, onCompari
       <div className="grid grid-cols-2 gap-4">
         <div>
           <h3 className="text-lg font-semibold mb-2">Reference Image</h3>
-          <img ref={referenceImageRef} src={referenceImageSrc} alt="Reference" className="w-full h-auto" />
+          <div className="relative aspect-video">
+            <Image
+              ref={referenceImageRef}
+              src={referenceImageSrc}
+              alt="Reference"
+              fill
+              className="object-cover rounded-lg"
+              priority
+            />
+          </div>
         </div>
         <div>
           <h3 className="text-lg font-semibold mb-2">Your Photo</h3>
-          <img ref={capturedImageRef} src={capturedImageSrc} alt="Captured" className="w-full h-auto" />
+          <div className="relative aspect-video">
+            <Image
+              ref={capturedImageRef}
+              src={capturedImageSrc}
+              alt="Captured"
+              fill
+              className="object-cover rounded-lg"
+              priority
+            />
+          </div>
         </div>
       </div>
       <Button onClick={compareImages} disabled={isComparing}>
