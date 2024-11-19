@@ -312,9 +312,9 @@ export default function Component() {
     if (userType === 'special') {
       return "/images/black.png"
     } else if (userType === 'tenant') {
-      return "/images/window-frame1.png"
+      return "/images/jads-good.png"
     } else {
-      return "/images/door-handle.png"
+      return "/images/jads-good2.png"
     }
   }
 
@@ -370,7 +370,7 @@ export default function Component() {
       <CardContent className="space-y-4">
         <div className="rounded-lg overflow-hidden">
           <Image
-            src="/images/window-frame1.png"
+            src="/images/jads-good.png"
             alt="Example window frame"
             width={400}
             height={300}
@@ -382,7 +382,7 @@ export default function Component() {
         </Button>
       </CardContent>
     </Card>,
-    // Step 3: Capture Photo (updated to show location status)
+    // Step 3: Capture Photo
     <Card key="capture" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Capture Photo</CardTitle>
@@ -409,7 +409,7 @@ export default function Component() {
       </CardContent>
     </Card>,
 
-    // Step 4: Photo Comparison (updated for tenant and special user)
+    // Step 4: Photo Comparison
     <Card key="comparison" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Compare Photos</CardTitle>
@@ -468,7 +468,7 @@ export default function Component() {
         </div>
       </CardContent>
     </Card>,
-    // Step 5: Condition Assessment (updated for tenant)
+    // Step 5: Condition Assessment
     <Card key="assessment" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Assess the Condition</CardTitle>
@@ -591,7 +591,7 @@ export default function Component() {
           Topstraat 55, Tiel
         </Button>
         <Button onClick={() => {
-          setSelectedAddress({ street: "Kerkstraat", number: "23/4B", city: "Tiel" });
+          setSelectedAddress({ street: "Kerkstraat", number: "23/4B", city: "Utrecht" });
           setCurrentStep(11);
         }} className="w-full">
           Kerkstraat 23/4B, Tiel
@@ -618,7 +618,7 @@ export default function Component() {
       <CardContent className="space-y-4">
         <div className="rounded-lg overflow-hidden">
           <Image
-            src="/images/door-handle.png"
+            src="/images/jads-good2.png"
             alt="Example window frame"
             width={400}
             height={300}
@@ -656,7 +656,7 @@ export default function Component() {
         </div>
       </CardContent>
     </Card>,
-    // Step 13: Photo Comparison (new step for employee)
+    // Step 13: Photo Comparison
     <Card key="employeeComparison" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Compare Photos</CardTitle>
@@ -665,7 +665,7 @@ export default function Component() {
       <CardContent className="space-y-6">
         {showPhotoComparison ? (
           <PhotoComparison
-            referenceImageSrc="/images/door-handle.png"
+            referenceImageSrc="/images/jads-good2.png"
             capturedImageSrc={selectedFile ? URL.createObjectURL(selectedFile) : ''}
             onComparisonComplete={handleComparisonComplete}
           />
@@ -675,8 +675,8 @@ export default function Component() {
               <Label>Example Photo</Label>
               <div className="rounded-lg overflow-hidden">
                 <Image
-                  src="/images/door-handle.png"
-                  alt="Example door handle"
+                  src="/images/jads-good2.png"
+                  alt="Example window frame"
                   width={200}
                   height={150}
                   className="w-full object-cover"
@@ -715,7 +715,7 @@ export default function Component() {
         </div>
       </CardContent>
     </Card>,
-    // Step 14: Condition Assessment (unchanged for employee)
+    // Step 14: Condition Assessment
     <Card key="employeeAssessment" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Assess the Condition</CardTitle>
