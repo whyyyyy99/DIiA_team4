@@ -213,7 +213,7 @@ export default function TenantPlatform() {
     return "None"
   }
 
-  const resetAssessment = () => {
+  const resetAssessment = useCallback(() => {
     setStructuralDefects(3)
     setDecayMagnitude(3)
     setDefectIntensity(3)
@@ -222,7 +222,7 @@ export default function TenantPlatform() {
     setShowPhotoComparison(false)
     setComparisonScore(null)
     setLocation(null)
-  }
+  }, [])
 
   const handleComparisonComplete = (score: number) => {
     setComparisonScore(score)
