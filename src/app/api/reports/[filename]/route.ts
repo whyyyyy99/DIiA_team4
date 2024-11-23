@@ -4,9 +4,11 @@ import { readFile } from 'fs/promises'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { filename: string } }
-) {
-  const { filename } = params
+  context: {
+    params: { filename: string }
+  }
+): Promise<Response> {
+  const { filename } = context.params
   const filePath = join(process.cwd(), 'public', 'reports', filename)
 
   try {
