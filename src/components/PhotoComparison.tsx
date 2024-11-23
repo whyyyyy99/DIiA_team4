@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 
 interface PhotoComparisonProps {
-  referenceImageSrc: string
-  capturedImageSrc: string
-  onComparisonComplete: (score: number) => void
+  referenceImageSrc: string;
+  capturedImageSrc: string;
+  onComparisonComplete: (score: number) => void;
+  onRetake?: () => void;
+  onBack?: () => void;
+  onContinue?: () => void;
+  canContinue?: boolean;
 }
 
 export function PhotoComparison({ referenceImageSrc, capturedImageSrc, onComparisonComplete }: PhotoComparisonProps) {
