@@ -1,68 +1,27 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { put } from '@vercel/blob'
 
-// Create a single PrismaClient instance
 const prisma = new PrismaClient()
 
 export async function GET() {
   try {
-    console.log('Starting to fetch submissions...')
-
     const submissions = await prisma.submission.findMany({
       orderBy: { date: 'desc' },
-      select: {
-        id: true,
-        type: true,
-        streetName: true,
-        apartmentNumber: true,
-        city: true,
-        structuralDefects: true,
-        decayMagnitude: true,
-        defectIntensity: true,
-        description: true,
-        photoUrl: true,
-        date: true,
-        submittedBy: true,
-        latitude: true,
-        longitude: true,
-      },
     })
-
-    console.log(`Successfully fetched ${submissions.length} submissions`)
-
-    return NextResponse.json(submissions, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-store, max-age=0',
-      },
-    })
+    return NextResponse.json(submissions)
   } catch (error) {
-    console.error('Failed to fetch submissions:', error)
-
+    console.error('Error fetching submissions:', error)
     return NextResponse.json(
-      {
-        error: 'Failed to fetch submissions',
-        details: error instanceof Error ? error.message : 'Unknown error occurred',
-      },
-      {
-        status: 500,
-      }
+      { error: 'Failed to fetch submissions', details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const formData = await req.formData()
-    
-    const photo = formData.get('photo')
-    if (!photo || !(photo instanceof File)) {
-      return NextResponse.json({ error: 'No photo uploaded' }, { status: 400 })
-    }
-
+    const formData = await request.formData()
+    const photo = formData.get('photo') as File
     const type = formData.get('type') as string
     const streetName = formData.get('streetName') as string
     const apartmentNumber = formData.get('apartmentNumber') as string
@@ -71,15 +30,16 @@ export async function POST(req: Request) {
     const decayMagnitude = parseInt(formData.get('decayMagnitude') as string)
     const defectIntensity = parseInt(formData.get('defectIntensity') as string)
     const description = formData.get('description') as string
-    const submittedBy = formData.get('submittedBy') as string | null
-    
-    const latitude = formData.get('latitude') ? parseFloat(formData.get('latitude') as string) : null
-    const longitude = formData.get('longitude') ? parseFloat(formData.get('longitude') as string) : null
+    const submittedBy = formData.get('submittedBy') as string
+    const latitude = parseFloat(formData.get('latitude') as string)
+    const longitude = parseFloat(formData.get('longitude') as string)
 
-    const blob = await put(`submissions/${Date.now()}_${photo.name}`, photo, {
-      access: 'public',
-    })
+    // Convert photo to base64
+    const bytes = await photo.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+    const photoUrl = `data:${photo.type};base64,${buffer.toString('base64')}`
 
+    // Create the submission in the database
     const submission = await prisma.submission.create({
       data: {
         type,
@@ -90,38 +50,21 @@ export async function POST(req: Request) {
         decayMagnitude,
         defectIntensity,
         description,
-        photoUrl: blob.url,
+        photoUrl,
         submittedBy,
         latitude,
         longitude,
+        date: new Date(),
       },
     })
 
-    return NextResponse.json(submission, { status: 201 })
+    return NextResponse.json(submission)
   } catch (error) {
-    console.error('Submission error:', error instanceof Error ? error.message : String(error))
-    
+    console.error('Error creating submission:', error)
     return NextResponse.json(
-      { 
-        error: 'Failed to submit',
-        details: error instanceof Error ? error.message : 'Unknown error occurred'
-      }, 
+      { error: 'Failed to create submission', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
-export async function OPTIONS() {
-  return NextResponse.json(
-    {},
-    {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    }
-  )
-}
