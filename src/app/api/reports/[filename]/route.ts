@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { join } from 'path'
 import { readFile } from 'fs/promises'
 
 export async function GET(
   request: NextRequest,
-  context: { params: { filename: string } }
+  { params }: { params: { filename: string } }
 ) {
-  const { filename } = context.params
+  const { filename } = params
   const filePath = join(process.cwd(), 'public', 'reports', filename)
 
   try {
     const fileBuffer = await readFile(filePath)
-    return new NextResponse(fileBuffer, {
+    return new Response(fileBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
@@ -19,7 +19,7 @@ export async function GET(
     })
   } catch (error) {
     console.error('Error serving PDF:', error)
-    return new NextResponse('PDF not found', { status: 404 })
+    return new Response('PDF not found', { status: 404 })
   }
 }
 
