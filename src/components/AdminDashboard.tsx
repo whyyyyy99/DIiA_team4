@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
@@ -31,9 +32,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import Image from 'next/image'
-import { generateNEN2767Report } from '@/app/actions/generate-report'
 import { useToast } from "@/components/ui/use-toast"
+import { generateNEN2767Report } from '@/app/actions/generate-report'
 
 interface AdminDashboardProps {
   onLogout: () => void
@@ -99,6 +99,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         description: "The NEN2767 report has been generated successfully.",
       })
 
+      // Trigger a refresh to ensure the new report is available
       router.refresh()
     } catch (error) {
       console.error('Error generating report:', error)
