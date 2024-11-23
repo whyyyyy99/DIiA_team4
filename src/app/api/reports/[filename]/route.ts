@@ -2,17 +2,11 @@ import { NextRequest } from 'next/server'
 import { join } from 'path'
 import { readFile } from 'fs/promises'
 
-interface RouteSegment {
-  params: {
-    filename: string
-  }
-}
-
 export async function GET(
   req: NextRequest,
-  segment: RouteSegment
+  { params }: { params: { filename: string } }
 ) {
-  const { filename } = segment.params
+  const { filename } = params
   const filePath = join(process.cwd(), 'public', 'reports', filename)
 
   try {
