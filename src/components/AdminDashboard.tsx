@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
@@ -20,7 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { LogOut, AlertCircle, FileSpreadsheet, Users, BarChart3, MapPin, Eye } from 'lucide-react'
+import { LogOut, AlertCircle, FileSpreadsheet, Users, BarChart3, MapPin, Eye, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import {
   Dialog,
@@ -30,7 +32,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import Image from 'next/image'
+import { useToast } from "@/components/ui/use-toast"
+import { generateNEN2767Report } from '@/app/actions/generate-report'
 
 interface AdminDashboardProps {
   onLogout: () => void
@@ -60,6 +63,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [filter, setFilter] = useState('all')
   const [sortOrder, setSortOrder] = useState('newest')
   const [searchTerm, setSearchTerm] = useState('')
+  const { toast } = useToast()
+  const router = useRouter()
 
   const fetchSubmissions = async () => {
     try {
@@ -74,8 +79,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const data = await response.json()
       setSubmissions(data)
     } catch (err) {
-      setError('Failed to fetch submissions. Please try again.')
       console.error('Fetch error:', err)
+      setError('Failed to fetch submissions. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -85,6 +90,27 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     fetchSubmissions()
   }, [])
 
+  const handleGenerateReport = async (submissionId: string) => {
+    try {
+      await generateNEN2767Report(submissionId)
+      
+      toast({
+        title: "Report Generated",
+        description: "The NEN2767 report has been generated successfully.",
+      })
+
+      // Trigger a refresh to ensure the new report is available
+      router.refresh()
+    } catch (error) {
+      console.error('Error generating report:', error)
+      toast({
+        title: "Error",
+        description: "Failed to generate the report. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+  
   const filteredSubmissions = submissions
     .filter(submission => {
       if (filter === 'all') return true
@@ -242,88 +268,99 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     {((submission.structuralDefects + submission.decayMagnitude + submission.defectIntensity) / 3).toFixed(1)}
                   </TableCell>
                   <TableCell>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex items-center gap-2">
-                          <Eye className="h-4 w-4" />
-                          View Details
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl">
-                        <DialogHeader>
-                          <DialogTitle>Submission Details</DialogTitle>
-                          <DialogDescription>
-                            Submitted on {format(new Date(submission.date), 'dd MMMM yyyy HH:mm')}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <div>
-                              <h3 className="font-semibold mb-1">Location Details</h3>
-                              <p className="text-sm">
-                                {submission.streetName} {submission.apartmentNumber}
-                                <br />
-                                {submission.city}
-                              </p>
-                              {submission.latitude && submission.longitude && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  <MapPin className="h-4 w-4 inline mr-1" />
-                                  {submission.latitude}, {submission.longitude}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold mb-1">Description</h3>
-                              <p className="text-sm whitespace-pre-wrap">{submission.description}</p>
-                            </div>
-                            <div>
-                              <h3 className="font-semibold mb-1">Defect Assessment</h3>
-                              <div className="grid grid-cols-3 gap-4 text-sm">
-                                <div>
-                                  <p className="text-muted-foreground">Structural</p>
-                                  <p className="font-medium">{submission.structuralDefects}/5</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground">Decay</p>
-                                  <p className="font-medium">{submission.decayMagnitude}/5</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground">Intensity</p>
-                                  <p className="font-medium">{submission.defectIntensity}/5</p>
-                                </div>
-                              </div>
-                            </div>
-                            {submission.submittedBy && (
+      <div className="flex gap-2">
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              View Details
+            </Button>
+          </DialogTrigger>
+                        <DialogContent className="max-w-4xl">
+                          <DialogHeader>
+                            <DialogTitle>Submission Details</DialogTitle>
+                            <DialogDescription>
+                              Submitted on {format(new Date(submission.date), 'dd MMMM yyyy HH:mm')}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-4">
                               <div>
-                                <h3 className="font-semibold mb-1">Submitted By</h3>
-                                <p className="text-sm">{submission.submittedBy}</p>
+                                <h3 className="font-semibold mb-1">Location Details</h3>
+                                <p className="text-sm">
+                                  {submission.streetName} {submission.apartmentNumber}
+                                  <br />
+                                  {submission.city}
+                                </p>
+                                {submission.latitude && submission.longitude && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    <MapPin className="h-4 w-4 inline mr-1" />
+                                    {submission.latitude}, {submission.longitude}
+                                  </p>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold mb-2">Photo</h3>
-                            <div className="aspect-video relative rounded-lg overflow-hidden border">
-                              {submission.photoUrl ? (
-                                <Image
-                                  src={submission.photoUrl}
-                                  alt="Submitted defect"
-                                  fill
-                                  className="object-cover"
-                                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                  priority={false}
-                                  unoptimized={process.env.NODE_ENV === 'development'}
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-muted">
-                                  <p className="text-muted-foreground">No photo available</p>
+                              <div>
+                                <h3 className="font-semibold mb-1">Description</h3>
+                                <p className="text-sm whitespace-pre-wrap">{submission.description}</p>
+                              </div>
+                              <div>
+                                <h3 className="font-semibold mb-1">Defect Assessment</h3>
+                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                  <div>
+                                    <p className="text-muted-foreground">Structural</p>
+                                    <p className="font-medium">{submission.structuralDefects}/6</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground">Decay</p>
+                                    <p className="font-medium">{submission.decayMagnitude}/6</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground">Intensity</p>
+                                    <p className="font-medium">{submission.defectIntensity}/6</p>
+                                  </div>
+                                </div>
+                              </div>
+                              {submission.submittedBy && (
+                                <div>
+                                  <h3 className="font-semibold mb-1">Submitted By</h3>
+                                  <p className="text-sm">{submission.submittedBy}</p>
                                 </div>
                               )}
                             </div>
+                            <div>
+                              <h3 className="font-semibold mb-2">Photo</h3>
+                              <div className="aspect-video relative rounded-lg overflow-hidden border">
+                                {submission.photoUrl ? (
+                                  <Image
+                                    src={submission.photoUrl}
+                                    alt="Submitted defect"
+                                    fill
+                                    className="object-cover"
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    priority={false}
+                                    unoptimized={process.env.NODE_ENV === 'development'}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-muted">
+                                    <p className="text-muted-foreground">No photo available</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
+                        </DialogContent>
+                        </Dialog>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+          onClick={() => handleGenerateReport(submission.id)}
+        >
+          <FileText className="h-4 w-4" />
+          Generate Report
+        </Button>
+      </div>
+    </TableCell>
                 </TableRow>
               ))
             )}

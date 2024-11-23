@@ -241,7 +241,7 @@ export default function TenantPlatform() {
     }
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedFile) {
       toast({
         title: "Error",
@@ -260,15 +260,27 @@ export default function TenantPlatform() {
       const formData = new FormData()
       
       formData.append('photo', selectedFile)
-      formData.append('type', 'tenant')
-      formData.append('streetName', currentTenant?.address.split(',')[0] || '')
-      formData.append('apartmentNumber', '')
-      formData.append('city', currentTenant?.address.split(',')[1]?.trim() || '')
+      formData.append('type', userType === 'tenant' ? 'tenant' : 'employee')
+      
+      if (userType === 'tenant' && currentTenant) {
+        const [street, city] = currentTenant.address.split(',').map(s => s.trim())
+        formData.append('streetName', street)
+        formData.append('apartmentNumber', '')
+        formData.append('city', city)
+        formData.append('submittedBy', currentTenant.email)
+      } else if (userType === 'employee' && _selectedAddress) {
+        formData.append('streetName', _selectedAddress.street)
+        formData.append('apartmentNumber', _selectedAddress.number)
+        formData.append('city', _selectedAddress.city)
+        formData.append('submittedBy', email)
+      } else {
+        throw new Error('Invalid user type or missing address information')
+      }
+      
       formData.append('structuralDefects', structuralDefects.toString())
       formData.append('decayMagnitude', decayMagnitude.toString())
       formData.append('defectIntensity', defectIntensity.toString())
-      formData.append('description', description || '')
-      formData.append('submittedBy', currentTenant?.email || '')
+      formData.append('description', description)
       
       if (location) {
         formData.append('latitude', location.latitude.toString())
@@ -281,7 +293,7 @@ export default function TenantPlatform() {
       })
   
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }))
+        const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to submit the assessment')
       }
   
@@ -291,7 +303,10 @@ export default function TenantPlatform() {
       setUploadProgress(100)
   
       setSubmissions(prevSubmissions => [...prevSubmissions, data])
-      setUploadedPhotosCount(prev => prev + 1)
+      
+      if (userType === 'tenant') {
+        setUploadedPhotosCount(prev => prev + 1)
+      }
       
       resetAssessment()
   
@@ -301,7 +316,13 @@ export default function TenantPlatform() {
         variant: "default",
       })
   
-      setTimeout(() => setCurrentStep(6), 1000)
+      setTimeout(() => {
+        if (userType === 'tenant') {
+          setCurrentStep(6)
+        } else if (userType === 'employee') {
+          setCurrentStep(15)
+        }
+      }, 1000)
     } catch (error) {
       clearInterval(progressInterval)
       setUploadProgress(0)
@@ -313,7 +334,7 @@ export default function TenantPlatform() {
         variant: "destructive",
       })
     }
-  }
+  }, [selectedFile, userType, currentTenant, _selectedAddress, email, structuralDefects, decayMagnitude, defectIntensity, description, location, toast, resetAssessment, setSubmissions, setUploadedPhotosCount, setCurrentStep])
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -796,27 +817,34 @@ export default function TenantPlatform() {
       </CardContent>
     </Card>,
     // Step 15: Upload Progress
-  <Card key="employeeUploadProgress" className="w-full max-w-md mx-auto">
-  <CardHeader>
-    <CardTitle>Uploading Submission</CardTitle>
-    <CardDescription>Please wait while we process your submission</CardDescription>
-  </CardHeader>
-  <CardContent className="space-y-6">
-    <div className="space-y-2">
-      <Progress value={uploadProgress} />
-      <p className="text-sm text-center text-muted-foreground">
-        Processing submission... {uploadProgress}%
-      </p>
-    </div>
-    {uploadProgress === 100 && (
-      <div className="text-center">
-        <p className="font-semibold text-green-600">Upload Complete!</p>
-        <p className="text-sm text-muted-foreground mt-2">Returning to dashboard...</p>
-      </div>
-    )}
-  </CardContent>
-</Card>,
-]
+    <Card key="employeeUploadProgress" className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Uploading Submission</CardTitle>
+        <CardDescription>Please wait while we process your submission</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Progress value={uploadProgress} />
+          <p className="text-sm text-center text-muted-foreground">
+            Processing submission... {uploadProgress}%
+          </p>
+        </div>
+        {uploadProgress === 100 && (
+          <div className="text-center">
+            <p className="font-semibold text-green-600">Upload Complete!</p>
+            <p className="text-sm text-muted-foreground mt-2">Returning to dashboard...</p>
+          </div>
+        )}
+      </CardContent>
+      {uploadProgress === 100 && (
+        <CardFooter>
+          <Button onClick={() => setCurrentStep(10)} className="w-full">
+            Return to Dashboard
+          </Button>
+        </CardFooter>
+      )}
+    </Card>,
+  ]
 
   const adminSteps = [
     <AdminDashboard
