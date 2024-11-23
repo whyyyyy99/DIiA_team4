@@ -4,11 +4,9 @@ import { readFile } from 'fs/promises'
 
 export async function GET(
   req: NextRequest,
-  context: {
-    params: { filename: string }
-  }
+  { params }: { params: { filename: string } }
 ): Promise<Response> {
-  const { filename } = context.params
+  const { filename } = params
   const filePath = join(process.cwd(), 'public', 'reports', filename)
 
   try {
@@ -24,4 +22,3 @@ export async function GET(
     return new Response('PDF not found', { status: 404 })
   }
 }
-
