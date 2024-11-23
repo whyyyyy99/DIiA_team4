@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import AdminDashboard from "./AdminDashboard"
-import { PhotoComparison } from './PhotoComparison'
+import {PhotoComparison} from './PhotoComparison'
 
 type UserType = 'tenant' | 'employee' | 'admin' | 'special' | null;
 
@@ -33,7 +33,39 @@ type Submission = {
   longitude?: number;
 };
 
-export default function Component() {
+type TenantAccount = {
+  email: string;
+  password: string;
+  name: string;
+  address: string;
+  referenceImages: string[];
+};
+
+const tenantAccounts: TenantAccount[] = [
+  {
+    email: "t1@kw.com",
+    password: "pass1",
+    name: "Tim Bakker",
+    address: "Effestraat 1, Eindhoven",
+    referenceImages: ["/images/t1-ref1.png", "/images/t1-ref2.png"],
+  },
+  {
+    email: "t2@kw.com",
+    password: "pass2",
+    name: "Tara Meik",
+    address: "Bernstraat 77, Oisterwijk",
+    referenceImages: ["/images/t2-ref1.png", "/images/t2-ref2.png"],
+  },
+  {
+    email: "t3@kw.com",
+    password: "pass3",
+    name: "Job Klaus",
+    address: "Sportlaan 3, Tilburg",
+    referenceImages: ["/images/t3-ref1.png", "/images/t3-ref2.png"],
+  },
+];
+
+export default function TenantPlatform() {
   const [currentStep, setCurrentStep] = useState(0)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -45,9 +77,11 @@ export default function Component() {
   const [description, setDescription] = useState("")
   const [uploadedPhotosCount, setUploadedPhotosCount] = useState(0)
   const [userType, setUserType] = useState<UserType>(null)
-  const [_submissions, setSubmissions] = useState<Submission[]>([])
+  const [submissions, setSubmissions] = useState<Submission[]>([])
   const [selectedAddress, setSelectedAddress] = useState({ street: "", number: "", city: "" })
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [currentTenant, setCurrentTenant] = useState<TenantAccount | null>(null)
+  const [currentReferenceImageIndex, setCurrentReferenceImageIndex] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { toast } = useToast()
@@ -63,7 +97,6 @@ export default function Component() {
         videoRef.current.srcObject = stream
       }
 
-      // Request geolocation permission
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setLocation({
@@ -125,12 +158,14 @@ export default function Component() {
 
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault()
-    if (email === "tenant@gmail.com" && password === "qwerty123") {
+    const tenant = tenantAccounts.find(account => account.email === email && account.password === password)
+    if (tenant) {
       toast({
         title: "Login successful!",
-        description: "Welcome to the KleurijkWonen tenant platform!",
+        description: `Welcome to the KleurijkWonen tenant platform, ${tenant.name}!`,
       })
       setUserType('tenant')
+      setCurrentTenant(tenant)
       setCurrentStep(1)
     } else if (email === "employee@kw.com" && password === "employee") {
       toast({
@@ -146,13 +181,6 @@ export default function Component() {
       })
       setUserType('admin')
       setCurrentStep(20)
-    } else if (email === "xyz@gmail.com" && password === "black") {
-      toast({
-        title: "Login successful!",
-        description: "Welcome to the special KleurijkWonen platform!",
-      })
-      setUserType('special')
-      setCurrentStep(1)
     } else {
       toast({
         title: "Login failed",
@@ -169,6 +197,9 @@ export default function Component() {
     setUserType(null)
     setCurrentStep(0)
     setDescription("")
+    setCurrentTenant(null)
+    setCurrentReferenceImageIndex(0)
+    setUploadedPhotosCount(0)
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",
@@ -228,19 +259,17 @@ export default function Component() {
     try {
       const formData = new FormData()
       
-      // Append all fields with proper error checking
       formData.append('photo', selectedFile)
-      formData.append('type', userType === 'tenant' ? 'tenant' : userType === 'special' ? 'special' : 'employee')
-      formData.append('streetName', userType === 'tenant' || userType === 'special' ? "Topstraat" : selectedAddress.street)
-      formData.append('apartmentNumber', userType === 'tenant' || userType === 'special' ? "55" : selectedAddress.number)
-      formData.append('city', userType === 'tenant' || userType === 'special' ? "Tiel" : selectedAddress.city)
+      formData.append('type', 'tenant')
+      formData.append('streetName', currentTenant?.address.split(',')[0] || '')
+      formData.append('apartmentNumber', '')
+      formData.append('city', currentTenant?.address.split(',')[1]?.trim() || '')
       formData.append('structuralDefects', structuralDefects.toString())
       formData.append('decayMagnitude', decayMagnitude.toString())
       formData.append('defectIntensity', defectIntensity.toString())
-      formData.append('description', description || '') // Ensure description is never undefined
-      formData.append('submittedBy', userType === 'employee' ? email : '')
+      formData.append('description', description || '')
+      formData.append('submittedBy', currentTenant?.email || '')
       
-      // Only append location if it exists
       if (location) {
         formData.append('latitude', location.latitude.toString())
         formData.append('longitude', location.longitude.toString())
@@ -272,13 +301,7 @@ export default function Component() {
         variant: "default",
       })
   
-      if (userType === 'tenant' || userType === 'special') {
-        setTimeout(() => setCurrentStep(6), 1000)
-      } else if (userType === 'employee') {
-        setTimeout(() => {
-          setCurrentStep(10)
-        }, 1500)
-      }
+      setTimeout(() => setCurrentStep(6), 1000)
     } catch (error) {
       clearInterval(progressInterval)
       setUploadProgress(0)
@@ -301,20 +324,18 @@ export default function Component() {
   }, [description])
 
   useEffect(() => {
-    if ((currentStep === 3 && (userType === 'tenant' || userType === 'special')) || (currentStep === 12 && userType === 'employee')) {
+    if (currentStep === 3 && userType === 'tenant') {
       startCamera()
     } else {
       stopCamera()
     }
   }, [currentStep, userType, startCamera, stopCamera])
 
-  const getExamplePhotoSrc = () => {
-    if (userType === 'special') {
-      return "/images/black.png"
-    } else if (userType === 'tenant') {
-      return "/images/jads-good.png"
-    } else {
-      return "/images/jads-good2.png"
+  const moveToNextReferenceImage = () => {
+    if (currentTenant) {
+      setCurrentReferenceImageIndex((prevIndex) => 
+        (prevIndex + 1) % currentTenant.referenceImages.length
+      )
     }
   }
 
@@ -365,18 +386,23 @@ export default function Component() {
     <Card key="example" className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Example Photo</CardTitle>
-        <CardDescription>This is how your photo should look</CardDescription>
+        <CardDescription>This is an example of what we're looking for</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-lg overflow-hidden">
-          <Image
-            src="/images/jads-good.png"
-            alt="Example window frame"
-            width={400}
-            height={300}
-            className="w-full object-cover"
-          />
-        </div>
+        {currentTenant && (
+          <div className="relative rounded-lg overflow-hidden">
+            <Image
+              src={currentTenant.referenceImages[currentReferenceImageIndex]}
+              alt={`Example photo ${currentReferenceImageIndex + 1}`}
+              width={400}
+              height={300}
+              className="w-full object-cover"
+            />
+            <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+              Photo {currentReferenceImageIndex + 1} of {currentTenant.referenceImages.length}
+            </div>
+          </div>
+        )}
         <Button onClick={() => setCurrentStep(3)} className="w-full">
           <Camera className="mr-2 h-4 w-4" /> Take Photo
         </Button>
@@ -408,7 +434,6 @@ export default function Component() {
         </div>
       </CardContent>
     </Card>,
-
     // Step 4: Photo Comparison
     <Card key="comparison" className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -416,55 +441,30 @@ export default function Component() {
         <CardDescription>Please verify that your photo matches the example</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {showPhotoComparison ? (
+        {selectedFile && currentTenant && (
           <PhotoComparison
-            referenceImageSrc={getExamplePhotoSrc()}
-            capturedImageSrc={selectedFile ? URL.createObjectURL(selectedFile) : ''}
-            onComparisonComplete={handleComparisonComplete}
-          />
-        ) : (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Example Photo</Label>
-              <div className="rounded-lg overflow-hidden">
-                <Image
-                  src={getExamplePhotoSrc()}
-                  alt="Example photo"
-                  width={200}
-                  height={150}
-                  className="w-full object-cover"
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Your Photo</Label>
-              {selectedFile && (
-                <div className="rounded-lg overflow-hidden">
-                  <Image
-                    src={URL.createObjectURL(selectedFile)}
-                    alt="Your uploaded photo"
-                    width={200}
-                    height={150}
-                    className="w-full object-cover"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+          referenceImageSrc={currentTenant.referenceImages[currentReferenceImageIndex]}
+          capturedImageSrc={URL.createObjectURL(selectedFile)}
+          onComparisonComplete={handleComparisonComplete}
+          onRetake={() => setCurrentStep(3)}
+          onBack={() => setCurrentStep(3)}
+          onContinue={() => setCurrentStep(5)}
+          canContinue={comparisonScore !== null && comparisonScore >= 80}
+        />
+        )}
+        {!selectedFile && (
+          <p>No photo captured. Please go back and take a photo.</p>
         )}
         <div className="flex justify-between">
           <Button variant="outline" onClick={() => setCurrentStep(3)}>
-            <ChevronLeft className="mr-2 h-4 w-4" /> Retake Photo
+            <ChevronLeft className="mr-2 h-4 w-4" /> Back
           </Button>
-          {showPhotoComparison ? (
-            <Button onClick={() => setCurrentStep(5)} disabled={comparisonScore === null || comparisonScore < 80}>
-              Continue <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button onClick={() => setShowPhotoComparison(true)}>
-              Compare Photos
-            </Button>
-          )}
+          <Button 
+            onClick={() => setCurrentStep(5)} 
+            disabled={comparisonScore === null || comparisonScore < 80}
+          >
+            Continue <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>,
@@ -563,7 +563,14 @@ export default function Component() {
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Button onClick={() => setCurrentStep(2)} className="w-full" variant="outline">
+              <Button 
+                onClick={() => {
+                  moveToNextReferenceImage();
+                  setCurrentStep(2);
+                }} 
+                className="w-full" 
+                variant="outline"
+              >
                 Submit Another Photo
               </Button>
               <Button onClick={handleLogout} className="w-full">
@@ -818,54 +825,54 @@ export default function Component() {
   />,
 ]
 
-  const loginStep = (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Login</CardTitle>
-        <CardDescription>Enter your credentials to access the platform</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <Button type="submit" className="w-full">
-            <LogIn className="mr-2 h-4 w-4" /> Login
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
-  )
+const loginStep = (
+  <Card className="w-full max-w-md mx-auto">
+    <CardHeader>
+      <CardTitle>Login</CardTitle>
+      <CardDescription>Enter your credentials to access the platform</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <Button type="submit" className="w-full">
+          <LogIn className="mr-2 h-4 w-4" /> Login
+        </Button>
+      </form>
+    </CardContent>
+  </Card>
+)
 
-  return (
-    <div className="min-h-screen bg-background py-8 px-4">
-      <div className="container max-w-lg mx-auto">
-        {currentStep === 0 ? loginStep :
-         userType === 'tenant' || userType === 'special' ? tenantSteps[currentStep - 1] :
-         userType === 'employee' ? employeeSteps[currentStep - 10] :
-         userType === 'admin' ? adminSteps[currentStep - 20] :
-         null}
-      </div>
-      <canvas ref={canvasRef} style={{ display: 'none' }} width={400} height={300} />
+return (
+  <div className="min-h-screen bg-background py-8 px-4">
+    <div className="container max-w-lg mx-auto">
+      {currentStep === 0 ? loginStep :
+       userType === 'tenant' ? tenantSteps[currentStep - 1] :
+       userType === 'employee' ? employeeSteps[currentStep - 10] :
+       userType === 'admin' ? adminSteps[currentStep - 20] :
+       null}
     </div>
-  )
+    <canvas ref={canvasRef} style={{ display: 'none' }} width={400} height={300} />
+  </div>
+)
 }
