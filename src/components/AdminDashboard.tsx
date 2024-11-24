@@ -96,7 +96,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         title: "Report Generated",
         description: "The NEN2767 report has been generated successfully.",
       })
-
+  
       // Create a link and trigger download
       const link = document.createElement('a')
       link.href = `/api/reports/${reportId}`
@@ -104,14 +104,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-
+  
       // Trigger a refresh to ensure the new report is available
       router.refresh()
     } catch (error) {
       console.error('Error generating report:', error)
       toast({
         title: "Error",
-        description: "Failed to generate the report. Please try again.",
+        description: "Failed to generate the report. Please check the console for more details.",
         variant: "destructive",
       })
     }

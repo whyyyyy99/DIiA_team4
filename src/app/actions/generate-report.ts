@@ -4,17 +4,26 @@ import { PrismaClient } from '@prisma/client'
 import PDFDocument from 'pdfkit'
 import { randomUUID } from 'crypto'
 
+// Create a new PrismaClient instance
 const prisma = new PrismaClient()
 
 export async function generateNEN2767Report(submissionId: string): Promise<string> {
+  console.log(`Generating report for submission ID: ${submissionId}`)
+  
   try {
+    // Ensure database connection
+    await prisma.$connect()
+    
     const submission = await prisma.submission.findUnique({
       where: { id: submissionId },
     })
 
     if (!submission) {
+      console.error(`Submission not found for ID: ${submissionId}`)
       throw new Error('Submission not found')
     }
+
+    console.log(`Found submission: ${JSON.stringify(submission)}`)
 
     // Create a new PDF document
     const doc = new PDFDocument({
@@ -31,6 +40,7 @@ export async function generateNEN2767Report(submissionId: string): Promise<strin
         const fileName = `NEN2767-Report-${randomUUID()}.pdf`
         
         try {
+          console.log(`Saving report to database: ${fileName}`)
           // Save the report to the database
           const report = await prisma.report.create({
             data: {
@@ -40,6 +50,7 @@ export async function generateNEN2767Report(submissionId: string): Promise<strin
             },
           })
 
+          console.log(`Report saved successfully. Report ID: ${report.id}`)
           resolve(report.id)
         } catch (writeError) {
           console.error('Error saving PDF to database:', writeError)
@@ -47,34 +58,25 @@ export async function generateNEN2767Report(submissionId: string): Promise<strin
         }
       })
 
-      doc.on('error', reject)
+      doc.on('error', (error) => {
+        console.error('Error generating PDF:', error)
+        reject(error)
+      })
 
-      // Title
+      // PDF Content Generation
       doc.fontSize(20).text('NEN2767 Inspection Report', { align: 'center' })
       doc.moveDown(2)
 
-      // Create two columns
-      const startX = 50
-      const startY = doc.y
-      const width = doc.page.width - 100
-      const columnGap = 20
-      const leftColumnWidth = width * 0.6 // 60% for text
-      const rightColumnWidth = width * 0.4 - columnGap // 40% for image
-
-      // Left column - Text content
-      doc.fontSize(14)
-      
       // Property Information
-      doc.text('Property Information', startX, startY)
+      doc.fontSize(14).text('Property Information')
       doc.fontSize(12)
-      doc.text(`Address: ${submission.streetName} ${submission.apartmentNumber}`, { continued: false })
+      doc.text(`Address: ${submission.streetName} ${submission.apartmentNumber}`)
       doc.text(`City: ${submission.city}`)
       doc.text(`Inspection Date: ${submission.date.toLocaleDateString()}`)
       doc.moveDown()
 
       // Condition Assessment
-      doc.fontSize(14)
-      doc.text('Condition Assessment')
+      doc.fontSize(14).text('Condition Assessment')
       doc.fontSize(12)
       doc.text(`Structural Defects: ${submission.structuralDefects}/6`)
       doc.text(`Decay Magnitude: ${submission.decayMagnitude}/6`)
@@ -82,48 +84,17 @@ export async function generateNEN2767Report(submissionId: string): Promise<strin
       doc.moveDown()
 
       // Description
-      doc.fontSize(14)
-      doc.text('Description')
+      doc.fontSize(14).text('Description')
       doc.fontSize(12)
       doc.text(submission.description || 'No description provided')
       doc.moveDown()
 
       // Location Data
       if (submission.latitude && submission.longitude) {
-        doc.fontSize(14)
-        doc.text('Location Data')
+        doc.fontSize(14).text('Location Data')
         doc.fontSize(12)
         doc.text(`Latitude: ${submission.latitude}`)
         doc.text(`Longitude: ${submission.longitude}`)
-      }
-
-      // Right column - Photo
-      if (submission.photoUrl && submission.photoUrl.includes('base64')) {
-        try {
-          const base64Data = submission.photoUrl.includes('data:image') 
-            ? submission.photoUrl.split(';base64,')[1]
-            : submission.photoUrl
-
-          const imageBuffer = Buffer.from(base64Data, 'base64')
-          
-          // Calculate image position
-          const imageX = startX + leftColumnWidth + columnGap
-          
-          // Add photo title
-          doc.fontSize(14)
-          doc.text('Inspection Photo', imageX, startY)
-          doc.moveDown()
-
-          // Add the image below the title
-          doc.image(imageBuffer, imageX, doc.y, {
-            fit: [rightColumnWidth, 300],
-            align: 'center',
-          })
-
-        } catch (imageError) {
-          console.error('Error embedding image:', imageError)
-          doc.text('Error: Could not embed image in report')
-        }
       }
 
       // Finalize the PDF
@@ -133,6 +104,8 @@ export async function generateNEN2767Report(submissionId: string): Promise<strin
   } catch (error) {
     console.error('Error generating report:', error)
     throw error
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
