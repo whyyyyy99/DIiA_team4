@@ -2,18 +2,14 @@ import { NextRequest } from 'next/server'
 import { join } from 'path'
 import { readFile } from 'fs/promises'
 
-interface RouteContext {
-  params: { filename: string };
-}
-
 export async function GET(
   request: NextRequest,
-  context: RouteContext // Strongly typed context
+  context: { params: { filename: string } }
 ): Promise<Response> {
-  const { filename } = context.params; // Safely destructure params
-  const filePath = join(process.cwd(), 'public', 'reports', filename)
-
   try {
+    const filename = context.params.filename
+    const filePath = join(process.cwd(), 'public', 'reports', filename)
+
     const fileBuffer = await readFile(filePath)
     
     // Check if the file is actually a PDF
@@ -37,3 +33,4 @@ export async function GET(
     return new Response('PDF not found', { status: 404 })
   }
 }
+
