@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto'
 
 const prisma = new PrismaClient()
 
-export async function generateNEN2767Report(submissionId: string) {
+export async function generateNEN2767Report(submissionId: string): Promise<string> {
   try {
     const submission = await prisma.submission.findUnique({
       where: { id: submissionId },
@@ -25,7 +25,7 @@ export async function generateNEN2767Report(submissionId: string) {
     const chunks: Buffer[] = []
     doc.on('data', (chunk) => chunks.push(chunk))
     
-    return new Promise<string>(async (resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       doc.on('end', async () => {
         const pdfBuffer = Buffer.concat(chunks)
         const fileName = `NEN2767-Report-${randomUUID()}.pdf`

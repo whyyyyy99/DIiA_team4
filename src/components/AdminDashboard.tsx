@@ -1,5 +1,3 @@
-'use client'
-
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -98,7 +96,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         title: "Report Generated",
         description: "The NEN2767 report has been generated successfully.",
       })
-  
+
       // Create a link and trigger download
       const link = document.createElement('a')
       link.href = `/api/reports/${reportId}`
@@ -106,7 +104,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-  
+
       // Trigger a refresh to ensure the new report is available
       router.refresh()
     } catch (error) {
@@ -276,14 +274,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     {((submission.structuralDefects + submission.decayMagnitude + submission.defectIntensity) / 3).toFixed(1)}
                   </TableCell>
                   <TableCell>
-      <div className="flex gap-2">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              View Details
-            </Button>
-          </DialogTrigger>
+                    <div className="flex gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </Button>
+                        </DialogTrigger>
                         <DialogContent className="max-w-4xl">
                           <DialogHeader>
                             <DialogTitle>Submission Details</DialogTitle>
@@ -339,7 +337,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               <h3 className="font-semibold mb-2">Photo</h3>
                               <div className="aspect-video relative rounded-lg overflow-hidden border">
                                 {submission.photoUrl ? (
-                                  <Image
+<Image
                                     src={submission.photoUrl}
                                     alt="Submitted defect"
                                     fill
@@ -357,18 +355,18 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             </div>
                           </div>
                         </DialogContent>
-                        </Dialog>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-          onClick={() => handleGenerateReport(submission.id)}
-        >
-          <FileText className="h-4 w-4" />
-          Generate Report
-        </Button>
-      </div>
-    </TableCell>
+                      </Dialog>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                        onClick={() => handleGenerateReport(submission.id)}
+                      >
+                        <FileText className="h-4 w-4" />
+                        Generate Report
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -378,3 +376,4 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     </div>
   )
 }
+
