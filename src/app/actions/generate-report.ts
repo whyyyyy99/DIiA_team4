@@ -125,4 +125,3 @@ export async function generateNEN2767Report(submissionId: string) {
     throw error
   }
 }
-

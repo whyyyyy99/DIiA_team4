@@ -25,9 +25,10 @@ model Submission {
   decayMagnitude    Int
   defectIntensity   Int
   description       String
-  photoUrl          String   @db.Text // Using Text type for large base64 strings
+  photoUrl          String
   date              DateTime @default(now())
   submittedBy       String?
   latitude          Float?
   longitude         Float?
 }
+

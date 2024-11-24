@@ -258,14 +258,13 @@ export default function TenantPlatform() {
   
     try {
       const formData = new FormData()
-      
       formData.append('photo', selectedFile)
       formData.append('type', userType === 'tenant' ? 'tenant' : 'employee')
-      
+  
       if (userType === 'tenant' && currentTenant) {
         const [street, city] = currentTenant.address.split(',').map(s => s.trim())
         formData.append('streetName', street)
-        formData.append('apartmentNumber', '')
+        formData.append('apartmentNumber', '1')
         formData.append('city', city)
         formData.append('submittedBy', currentTenant.email)
       } else if (userType === 'employee' && _selectedAddress) {
@@ -276,12 +275,12 @@ export default function TenantPlatform() {
       } else {
         throw new Error('Invalid user type or missing address information')
       }
-      
+  
       formData.append('structuralDefects', structuralDefects.toString())
       formData.append('decayMagnitude', decayMagnitude.toString())
       formData.append('defectIntensity', defectIntensity.toString())
       formData.append('description', description)
-      
+  
       if (location) {
         formData.append('latitude', location.latitude.toString())
         formData.append('longitude', location.longitude.toString())
@@ -303,11 +302,11 @@ export default function TenantPlatform() {
       setUploadProgress(100)
   
       setSubmissions(prevSubmissions => [...prevSubmissions, data])
-      
+  
       if (userType === 'tenant') {
         setUploadedPhotosCount(prev => prev + 1)
       }
-      
+  
       resetAssessment()
   
       toast({
@@ -326,7 +325,7 @@ export default function TenantPlatform() {
     } catch (error) {
       clearInterval(progressInterval)
       setUploadProgress(0)
-      
+  
       console.error('Submission error:', error)
       toast({
         title: "Error",
@@ -334,7 +333,24 @@ export default function TenantPlatform() {
         variant: "destructive",
       })
     }
-  }, [selectedFile, userType, currentTenant, _selectedAddress, email, structuralDefects, decayMagnitude, defectIntensity, description, location, toast, resetAssessment, setSubmissions, setUploadedPhotosCount, setCurrentStep])
+  }, [
+    selectedFile,
+    userType,
+    currentTenant,
+    _selectedAddress,
+    email,
+    structuralDefects,
+    decayMagnitude,
+    defectIntensity,
+    description,
+    location,
+    toast,
+    resetAssessment,
+    setSubmissions,
+    setUploadedPhotosCount,
+    setCurrentStep
+  ])
+  
   
   useEffect(() => {
     const timer = setTimeout(() => {
