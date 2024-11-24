@@ -92,13 +92,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const handleGenerateReport = async (submissionId: string) => {
     try {
-      await generateNEN2767Report(submissionId)
+      const reportId = await generateNEN2767Report(submissionId)
       
       toast({
         title: "Report Generated",
         description: "The NEN2767 report has been generated successfully.",
       })
-
+  
+      // Create a link and trigger download
+      const link = document.createElement('a')
+      link.href = `/api/reports/${reportId}`
+      link.download = `NEN2767-Report-${submissionId}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+  
       // Trigger a refresh to ensure the new report is available
       router.refresh()
     } catch (error) {

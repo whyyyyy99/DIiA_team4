@@ -15,6 +15,15 @@ model User {
   role     String
 }
 
+model Report {
+  id           String   @id @default(cuid())
+  filename     String
+  content      Bytes
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
 model Submission {
   id                String   @id @default(cuid())
   type              String
@@ -25,10 +34,10 @@ model Submission {
   decayMagnitude    Int
   defectIntensity   Int
   description       String
-  photoUrl          String
+  photoUrl          String   @db.Text
   date              DateTime @default(now())
   submittedBy       String?
   latitude          Float?
   longitude         Float?
+  reports           Report[]
 }
-

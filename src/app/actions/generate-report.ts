@@ -2,8 +2,6 @@
 
 import { PrismaClient } from '@prisma/client'
 import PDFDocument from 'pdfkit'
-import { join } from 'path'
-import { writeFile } from 'fs/promises'
 import { randomUUID } from 'crypto'
 
 const prisma = new PrismaClient()
@@ -21,20 +19,32 @@ export async function generateNEN2767Report(submissionId: string) {
     // Create a new PDF document
     const doc = new PDFDocument({
       size: 'A4',
-      font: join(process.cwd(), 'fonts', 'Helvetica.ttf'),
       layout: 'portrait'
     })
 
     const chunks: Buffer[] = []
     doc.on('data', (chunk) => chunks.push(chunk))
     
-    return new Promise<Buffer>((resolve, reject) => {
+    return new Promise<string>(async (resolve, reject) => {
       doc.on('end', async () => {
         const pdfBuffer = Buffer.concat(chunks)
         const fileName = `NEN2767-Report-${randomUUID()}.pdf`
-        const filePath = join(process.cwd(), 'public', 'reports', fileName)
-        await writeFile(filePath, pdfBuffer)
-        resolve(pdfBuffer)
+        
+        try {
+          // Save the report to the database
+          const report = await prisma.report.create({
+            data: {
+              filename: fileName,
+              content: pdfBuffer,
+              submissionId: submissionId,
+            },
+          })
+
+          resolve(report.id)
+        } catch (writeError) {
+          console.error('Error saving PDF to database:', writeError)
+          reject(writeError)
+        }
       })
 
       doc.on('error', reject)
@@ -125,3 +135,4 @@ export async function generateNEN2767Report(submissionId: string) {
     throw error
   }
 }
+
