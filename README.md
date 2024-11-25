@@ -1,6 +1,11 @@
 # Getting Started
 ## Login details
-### Tenant-side
+### Tenant logins
+1. t1@kw.com pass1
+2. t2@kw.com pass2
+3. t3@kw.com pass3
+
+Old one:
 tenant@gmail.com
 
 qwerty123
