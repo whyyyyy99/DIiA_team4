@@ -27,9 +27,9 @@ export async function POST(req: Request) {
       return isNaN(parsed) ? null : parsed;
     };
 
-    const structuralDefects = parseNullableInt(formData.get('structuralDefects'));
-    const decayMagnitude = parseNullableInt(formData.get('decayMagnitude'));
-    const defectIntensity = parseNullableInt(formData.get('defectIntensity'));
+    const structuralDefects = parseNullableInt(formData.get('structuralDefects')) ?? 3;
+    const decayMagnitude = parseNullableInt(formData.get('decayMagnitude')) ?? 3;
+    const defectIntensity = parseNullableInt(formData.get('defectIntensity')) ?? 3;
     
     const description = formData.get('description') as string
     const submittedBy = formData.get('submittedBy') as string | null
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     })
 
     // Validate required fields
-    if (!type || !streetName || !apartmentNumber || !city || structuralDefects === null) {
+    if (!type || !streetName || !apartmentNumber || !city) {
       console.error('Missing required fields')
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
