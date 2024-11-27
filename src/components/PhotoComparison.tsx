@@ -139,15 +139,12 @@ export function PhotoComparison({
         </Alert>
       )}
       <div className="flex justify-between mt-4">
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
         <Button variant="outline" onClick={onRetake}>
           Retake Photo
         </Button>
         <Button 
           onClick={onContinue} 
-          disabled={!canContinue}
+          disabled={!comparisonMessage || !comparisonMessage.includes("Great picture")}
         >
           Continue
         </Button>
