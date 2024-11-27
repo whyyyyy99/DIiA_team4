@@ -2,64 +2,16 @@ import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { put } from '@vercel/blob'
 
-// Create a single PrismaClient instance
 const prisma = new PrismaClient()
-
-export async function GET() {
-  try {
-    console.log('Starting to fetch submissions...')
-
-    const submissions = await prisma.submission.findMany({
-      orderBy: { date: 'desc' },
-      select: {
-        id: true,
-        type: true,
-        streetName: true,
-        apartmentNumber: true,
-        city: true,
-        structuralDefects: true,
-        decayMagnitude: true,
-        defectIntensity: true,
-        description: true,
-        photoUrl: true,
-        date: true,
-        submittedBy: true,
-        latitude: true,
-        longitude: true,
-      },
-    })
-
-    console.log(`Successfully fetched ${submissions.length} submissions`)
-
-    return NextResponse.json(submissions, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-store, max-age=0',
-      },
-    })
-  } catch (error) {
-    console.error('Failed to fetch submissions:', error)
-
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch submissions',
-        details: error instanceof Error ? error.message : 'Unknown error occurred',
-      },
-      {
-        status: 500,
-      }
-    )
-  } finally {
-    await prisma.$disconnect()
-  }
-}
 
 export async function POST(req: Request) {
   try {
+    console.log('Submission request received')
     const formData = await req.formData()
     
     const photo = formData.get('photo')
     if (!photo || !(photo instanceof File)) {
+      console.error('No photo uploaded')
       return NextResponse.json({ error: 'No photo uploaded' }, { status: 400 })
     }
 
@@ -67,19 +19,51 @@ export async function POST(req: Request) {
     const streetName = formData.get('streetName') as string
     const apartmentNumber = formData.get('apartmentNumber') as string
     const city = formData.get('city') as string
-    const structuralDefects = parseInt(formData.get('structuralDefects') as string)
-    const decayMagnitude = parseInt(formData.get('decayMagnitude') as string)
-    const defectIntensity = parseInt(formData.get('defectIntensity') as string)
+    
+    // Handle nullable number fields
+    const parseNullableInt = (value: FormDataEntryValue | null): number | null => {
+      if (value === null || value === '') return null;
+      const parsed = parseInt(value as string, 10);
+      return isNaN(parsed) ? null : parsed;
+    };
+
+    const structuralDefects = parseNullableInt(formData.get('structuralDefects'));
+    const decayMagnitude = parseNullableInt(formData.get('decayMagnitude'));
+    const defectIntensity = parseNullableInt(formData.get('defectIntensity'));
+    
     const description = formData.get('description') as string
     const submittedBy = formData.get('submittedBy') as string | null
     
     const latitude = formData.get('latitude') ? parseFloat(formData.get('latitude') as string) : null
     const longitude = formData.get('longitude') ? parseFloat(formData.get('longitude') as string) : null
 
+    console.log('Parsed form data:', { 
+      type, 
+      streetName, 
+      apartmentNumber, 
+      city, 
+      structuralDefects, 
+      decayMagnitude, 
+      defectIntensity, 
+      description, 
+      submittedBy, 
+      latitude, 
+      longitude 
+    })
+
+    // Validate required fields
+    if (!type || !streetName || !apartmentNumber || !city || structuralDefects === null) {
+      console.error('Missing required fields')
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    console.log('Uploading photo to blob storage')
     const blob = await put(`submissions/${Date.now()}_${photo.name}`, photo, {
       access: 'public',
     })
+    console.log('Photo uploaded successfully:', blob.url)
 
+    console.log('Creating submission in database')
     const submission = await prisma.submission.create({
       data: {
         type,
@@ -96,6 +80,7 @@ export async function POST(req: Request) {
         longitude,
       },
     })
+    console.log('Submission created successfully:', submission)
 
     return NextResponse.json(submission, { status: 201 })
   } catch (error) {
@@ -113,15 +98,3 @@ export async function POST(req: Request) {
   }
 }
 
-export async function OPTIONS() {
-  return NextResponse.json(
-    {},
-    {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    }
-  )
-}

@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import AdminDashboard from "./AdminDashboard"
-import {PhotoComparison} from './PhotoComparison'
+import { PhotoComparison } from './PhotoComparison'
 
 type UserType = 'tenant' | 'employee' | 'admin' | 'special' | null;
 
@@ -139,6 +139,8 @@ export default function TenantPlatform() {
     }
   }, [])
 
+  const [capturedImageBlob, setCapturedImageBlob] = useState<Blob | null>(null)
+
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const context = canvasRef.current.getContext('2d')
@@ -146,8 +148,8 @@ export default function TenantPlatform() {
         context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height)
         canvasRef.current.toBlob((blob) => {
           if (blob) {
-            const file = new File([blob], "captured-photo.jpg", { type: "image/jpeg" })
-            setSelectedFile(file)
+            setCapturedImageBlob(blob)
+            setSelectedFile(new File([blob], "captured-photo.jpg", { type: "image/jpeg" }))
             stopCamera()
             setCurrentStep(currentStep + 1)
           }
@@ -213,7 +215,7 @@ export default function TenantPlatform() {
     return "None"
   }
 
-  const resetAssessment = () => {
+  const resetAssessment = useCallback(() => {
     setStructuralDefects(3)
     setDecayMagnitude(3)
     setDefectIntensity(3)
@@ -222,26 +224,29 @@ export default function TenantPlatform() {
     setShowPhotoComparison(false)
     setComparisonScore(null)
     setLocation(null)
-  }
+  }, [])
 
-  const handleComparisonComplete = (score: number) => {
-    setComparisonScore(score)
-    if (score >= 80) {
+  const [comparisonMessage, setComparisonMessage] = useState<string | null>(null)
+
+  const handleComparisonComplete = (message: string) => {
+    setComparisonMessage(message)
+    if (message.toLowerCase().includes('good') || message.toLowerCase().includes('acceptable')) {
       toast({
-        title: "Great job!",
-        description: "Your photo is very similar to the reference. You can proceed with the submission.",
+        title: "Photo Accepted",
+        description: message,
         variant: "default",
       })
     } else {
       toast({
-        title: "Photo might need adjustment",
-        description: "Try to match the angle and framing of the reference photo more closely.",
+        title: "Photo Needs Adjustment",
+        description: message,
         variant: "destructive",
       })
     }
   }
 
-  const handleSubmit = async () => {
+
+  const handleSubmit = useCallback(async () => {
     if (!selectedFile) {
       toast({
         title: "Error",
@@ -258,54 +263,90 @@ export default function TenantPlatform() {
   
     try {
       const formData = new FormData()
-      
       formData.append('photo', selectedFile)
-      formData.append('type', 'tenant')
-      formData.append('streetName', currentTenant?.address.split(',')[0] || '')
-      formData.append('apartmentNumber', '')
-      formData.append('city', currentTenant?.address.split(',')[1]?.trim() || '')
-      formData.append('structuralDefects', structuralDefects.toString())
-      formData.append('decayMagnitude', decayMagnitude.toString())
-      formData.append('defectIntensity', defectIntensity.toString())
+      formData.append('type', userType === 'tenant' ? 'tenant' : 'employee')
+
+      if (userType === 'tenant' && currentTenant) {
+        const [street, city] = currentTenant.address.split(',').map(s => s.trim())
+        formData.append('streetName', street)
+        formData.append('apartmentNumber', '1')
+        formData.append('city', city)
+        formData.append('submittedBy', currentTenant.email)
+      } else if (userType === 'employee' && _selectedAddress) {
+        formData.append('streetName', _selectedAddress.street)
+        formData.append('apartmentNumber', _selectedAddress.number)
+        formData.append('city', _selectedAddress.city)
+        formData.append('submittedBy', email)
+      } else {
+        throw new Error('Invalid user type or missing address information')
+      }
+
+      // Ensure we're sending numbers or null for these fields
+      formData.append('structuralDefects', structuralDefects !== null ? structuralDefects.toString() : '')
+      formData.append('decayMagnitude', decayMagnitude !== null ? decayMagnitude.toString() : '')
+      formData.append('defectIntensity', defectIntensity !== null ? defectIntensity.toString() : '')
       formData.append('description', description || '')
-      formData.append('submittedBy', currentTenant?.email || '')
-      
+
       if (location) {
         formData.append('latitude', location.latitude.toString())
         formData.append('longitude', location.longitude.toString())
       }
-  
+
+      console.log('Submitting form data:', Object.fromEntries(formData))
+
       const response = await fetch('/api/submissions', {
         method: 'POST',
         body: formData,
       })
-  
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }))
-        throw new Error(errorData.error || 'Failed to submit the assessment')
+
+      let data
+      try {
+        const textResponse = await response.text()
+        data = textResponse ? JSON.parse(textResponse) : {}
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError)
+        throw new Error('Invalid response format from server')
       }
-  
-      const data = await response.json()
-  
+
+      if (!response.ok) {
+        console.error('Submission response error:', data)
+        throw new Error(
+          data.error || data.details || `Failed to submit the assessment (Status: ${response.status})`
+        )
+      }
+
       clearInterval(progressInterval)
       setUploadProgress(100)
-  
-      setSubmissions(prevSubmissions => [...prevSubmissions, data])
-      setUploadedPhotosCount(prev => prev + 1)
-      
-      resetAssessment()
-  
-      toast({
-        title: "Submission Successful",
-        description: "Your assessment has been submitted.",
-        variant: "default",
-      })
-  
-      setTimeout(() => setCurrentStep(6), 1000)
+
+      if (data && !data.error) {
+        setSubmissions(prevSubmissions => [...prevSubmissions, data])
+
+        if (userType === 'tenant') {
+          setUploadedPhotosCount(prev => prev + 1)
+        }
+
+        resetAssessment()
+
+        toast({
+          title: "Submission Successful",
+          description: "Your assessment has been submitted.",
+          variant: "default",
+        })
+
+        setTimeout(() => {
+          if (userType === 'tenant') {
+            setCurrentStep(6)
+          } else if (userType === 'employee') {
+            setCurrentStep(15)
+          }
+        }, 1000)
+      } else {
+        throw new Error(data.error || 'Unknown submission error')
+      }
     } catch (error) {
       clearInterval(progressInterval)
       setUploadProgress(0)
-      
+
       console.error('Submission error:', error)
       toast({
         title: "Error",
@@ -313,7 +354,24 @@ export default function TenantPlatform() {
         variant: "destructive",
       })
     }
-  }
+  }, [
+    selectedFile,
+    userType,
+    currentTenant,
+    _selectedAddress,
+    email,
+    structuralDefects,
+    decayMagnitude,
+    defectIntensity,
+    description,
+    location,
+    toast,
+    resetAssessment,
+    setSubmissions,
+    setUploadedPhotosCount,
+    setCurrentStep
+  ])
+  
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -441,31 +499,17 @@ export default function TenantPlatform() {
         <CardDescription>Please verify that your photo matches the example</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {selectedFile && currentTenant && (
+        {currentTenant && (
           <PhotoComparison
-          referenceImageSrc={currentTenant.referenceImages[currentReferenceImageIndex]}
-          capturedImageSrc={URL.createObjectURL(selectedFile)}
-          onComparisonComplete={handleComparisonComplete}
-          onRetake={() => setCurrentStep(3)}
-          onBack={() => setCurrentStep(3)}
-          onContinue={() => setCurrentStep(5)}
-          canContinue={comparisonScore !== null && comparisonScore >= 80}
-        />
+            referenceImageSrc={currentTenant.referenceImages[currentReferenceImageIndex]}
+            selectedFile={selectedFile}
+            onComparisonComplete={handleComparisonComplete}
+            onRetake={() => setCurrentStep(3)}
+            onBack={() => setCurrentStep(3)}
+            onContinue={() => setCurrentStep(5)}
+            canContinue={comparisonMessage !== null && !comparisonMessage.toLowerCase().includes('dark')}
+          />
         )}
-        {!selectedFile && (
-          <p>No photo captured. Please go back and take a photo.</p>
-        )}
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setCurrentStep(3)}>
-            <ChevronLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
-          <Button 
-            onClick={() => setCurrentStep(5)} 
-            disabled={comparisonScore === null || comparisonScore < 80}
-          >
-            Continue <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
       </CardContent>
     </Card>,
     // Step 5: Condition Assessment
@@ -664,64 +708,56 @@ export default function TenantPlatform() {
       </CardContent>
     </Card>,
     // Step 13: Photo Comparison
-    <Card key="employeeComparison" className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Compare Photos</CardTitle>
-        <CardDescription>Please verify that your photo matches the example</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {showPhotoComparison ? (
-          <PhotoComparison
-            referenceImageSrc="/images/jads-good2.png"
-            capturedImageSrc={selectedFile ? URL.createObjectURL(selectedFile) : ''}
-            onComparisonComplete={handleComparisonComplete}
-          />
-        ) : (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Example Photo</Label>
-              <div className="rounded-lg overflow-hidden">
-                <Image
-                  src="/images/jads-good2.png"
-                  alt="Example window frame"
-                  width={200}
-                  height={150}
-                  className="w-full object-cover"
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Your Photo</Label>
-              {selectedFile && (
-                <div className="rounded-lg overflow-hidden">
-                  <Image
-                    src={URL.createObjectURL(selectedFile)}
-                    alt="Your uploaded photo"
-                    width={200}
-                    height={150}
-                    className="w-full object-cover"
-                  />
-                </div>
-              )}
-            </div>
+<Card key="employeeComparison" className="w-full max-w-md mx-auto">
+  <CardHeader>
+    <CardTitle>Compare Photos</CardTitle>
+    <CardDescription>Please verify that your photo matches the example</CardDescription>
+  </CardHeader>
+  <CardContent className="space-y-6">
+    {selectedFile ? (
+      <PhotoComparison
+        referenceImageSrc="/images/jads-good2.png"
+        selectedFile={selectedFile}
+        onComparisonComplete={handleComparisonComplete}
+        onRetake={() => setCurrentStep(12)}
+        onBack={() => setCurrentStep(12)}
+        onContinue={() => {
+          if (comparisonMessage && !comparisonMessage.toLowerCase().includes('dark')) {
+            setCurrentStep(14);
+          }
+        }}
+      />
+    ) : (
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Example Photo</Label>
+          <div className="rounded-lg overflow-hidden">
+            <Image
+              src="/images/jads-good2.png"
+              alt="Example window frame"
+              width={200}
+              height={150}
+              className="w-full object-cover"
+            />
           </div>
-        )}
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setCurrentStep(12)}>
-            <ChevronLeft className="mr-2 h-4 w-4" /> Retake Photo
-          </Button>
-          {showPhotoComparison ? (
-            <Button onClick={() => setCurrentStep(14)} disabled={comparisonScore === null || comparisonScore < 80}>
-              Continue <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button onClick={() => setShowPhotoComparison(true)}>
-              Compare Photos
-            </Button>
-          )}
         </div>
-      </CardContent>
-    </Card>,
+        <div>
+          <Label>Your Photo</Label>
+          <div className="rounded-lg overflow-hidden bg-muted flex items-center justify-center h-[150px]">
+            <p className="text-muted-foreground">No photo captured</p>
+          </div>
+        </div>
+      </div>
+    )}
+    {!selectedFile && (
+      <div className="flex justify-center">
+        <Button onClick={() => setCurrentStep(12)}>
+          <Camera className="mr-2 h-4 w-4" /> Take Photo
+        </Button>
+      </div>
+    )}
+  </CardContent>
+</Card>,
     // Step 14: Condition Assessment
     <Card key="employeeAssessment" className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -796,27 +832,34 @@ export default function TenantPlatform() {
       </CardContent>
     </Card>,
     // Step 15: Upload Progress
-  <Card key="employeeUploadProgress" className="w-full max-w-md mx-auto">
-  <CardHeader>
-    <CardTitle>Uploading Submission</CardTitle>
-    <CardDescription>Please wait while we process your submission</CardDescription>
-  </CardHeader>
-  <CardContent className="space-y-6">
-    <div className="space-y-2">
-      <Progress value={uploadProgress} />
-      <p className="text-sm text-center text-muted-foreground">
-        Processing submission... {uploadProgress}%
-      </p>
-    </div>
-    {uploadProgress === 100 && (
-      <div className="text-center">
-        <p className="font-semibold text-green-600">Upload Complete!</p>
-        <p className="text-sm text-muted-foreground mt-2">Returning to dashboard...</p>
-      </div>
-    )}
-  </CardContent>
-</Card>,
-]
+    <Card key="employeeUploadProgress" className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Uploading Submission</CardTitle>
+        <CardDescription>Please wait while we process your submission</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Progress value={uploadProgress} />
+          <p className="text-sm text-center text-muted-foreground">
+            Processing submission... {uploadProgress}%
+          </p>
+        </div>
+        {uploadProgress === 100 && (
+          <div className="text-center">
+            <p className="font-semibold text-green-600">Upload Complete!</p>
+            <p className="text-sm text-muted-foreground mt-2">Returning to dashboard...</p>
+          </div>
+        )}
+      </CardContent>
+      {uploadProgress === 100 && (
+        <CardFooter>
+          <Button onClick={() => setCurrentStep(10)} className="w-full">
+            Return to Dashboard
+          </Button>
+        </CardFooter>
+      )}
+    </Card>,
+  ]
 
   const adminSteps = [
     <AdminDashboard

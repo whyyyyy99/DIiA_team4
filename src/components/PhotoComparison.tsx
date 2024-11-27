@@ -1,106 +1,158 @@
-import React, { useEffect, useRef, useState } from 'react'
-import * as tf from '@tensorflow/tfjs'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from 'lucide-react'
 
 interface PhotoComparisonProps {
   referenceImageSrc: string;
-  capturedImageSrc: string;
-  onComparisonComplete: (score: number) => void;
+  selectedFile: File | null;
+  onComparisonComplete: (message: string) => void;
   onRetake?: () => void;
   onBack?: () => void;
   onContinue?: () => void;
   canContinue?: boolean;
 }
 
-export function PhotoComparison({ referenceImageSrc, capturedImageSrc, onComparisonComplete }: PhotoComparisonProps) {
-  const [comparisonScore, setComparisonScore] = useState<number | null>(null)
+export function PhotoComparison({ 
+  referenceImageSrc, 
+  selectedFile, 
+  onComparisonComplete,
+  onRetake,
+  onBack,
+  onContinue,
+  canContinue 
+}: PhotoComparisonProps) {
   const [isComparing, setIsComparing] = useState(false)
-  const referenceImageRef = useRef<HTMLImageElement>(null)
-  const capturedImageRef = useRef<HTMLImageElement>(null)
-
-  const compareImages = async () => {
-    setIsComparing(true)
-    if (referenceImageRef.current && capturedImageRef.current) {
-      const referenceImage = tf.browser.fromPixels(referenceImageRef.current)
-      const capturedImage = tf.browser.fromPixels(capturedImageRef.current)
-
-      // Resize images to the same dimensions
-      const targetSize: [number, number] = [224, 224]
-      const resizedReference = tf.image.resizeBilinear(referenceImage, targetSize)
-      const resizedCaptured = tf.image.resizeBilinear(capturedImage, targetSize)
-
-      // Convert to grayscale
-      const grayReference = tf.mean(resizedReference, 2)
-      const grayCaptured = tf.mean(resizedCaptured, 2)
-
-      // Normalize pixel values
-      const normalizedReference = grayReference.div(tf.scalar(255))
-      const normalizedCaptured = grayCaptured.div(tf.scalar(255))
-
-      // Calculate Mean Squared Error (MSE)
-      const mse = tf.mean(tf.square(tf.sub(normalizedReference, normalizedCaptured)))
-
-      // Convert MSE to a similarity score (0-100)
-      const mseValue = await mse.array()
-      const similarityScore = 100 - (mseValue as number * 100)
-      setComparisonScore(similarityScore)
-      onComparisonComplete(similarityScore)
-
-      // Clean up tensors
-      tf.dispose([referenceImage, capturedImage, resizedReference, resizedCaptured, grayReference, grayCaptured, normalizedReference, normalizedCaptured, mse])
-    }
-    setIsComparing(false)
-  }
+  const [comparisonMessage, setComparisonMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    // Load TensorFlow.js
-    tf.ready().then(() => {
-      console.log('TensorFlow.js is ready')
-    })
-  }, [])
+    if (selectedFile) {
+      const url = URL.createObjectURL(selectedFile)
+      setCapturedImageUrl(url)
+      return () => URL.revokeObjectURL(url)
+    }
+  }, [selectedFile])
+
+  const compareImages = async () => {
+    if (!selectedFile) {
+      setError('No photo selected')
+      return
+    }
+
+    setIsComparing(true)
+    setError(null)
+    
+    try {
+      const formData = new FormData()
+      formData.append('image', selectedFile, 'captured.jpg')
+      
+      // Fetch the reference image and append it as a file
+      const referenceImageResponse = await fetch(referenceImageSrc)
+      const referenceImageBlob = await referenceImageResponse.blob()
+      formData.append('image_comp', referenceImageBlob, 'reference.jpg')
+
+      const response = await fetch('/api/compare-photos', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }))
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      if (!data.message) {
+        throw new Error('Invalid response from server')
+      }
+
+      setComparisonMessage(data.message)
+      onComparisonComplete(data.message)
+    } catch (error) {
+      console.error('Error comparing images:', error)
+      setError(error instanceof Error ? error.message : 'Failed to compare images. Please try again.')
+    } finally {
+      setIsComparing(false)
+    }
+  }
+
+  if (!selectedFile || !capturedImageUrl) {
+    return (
+      <div className="text-center p-4">
+        <p className="text-muted-foreground">No photo captured. Please go back and take a photo.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <h3 className="text-lg font-semibold mb-2">Reference Image</h3>
-          <div className="relative aspect-video">
+          <div className="relative aspect-video bg-muted">
             <Image
-              ref={referenceImageRef}
               src={referenceImageSrc}
               alt="Reference"
               fill
               className="object-cover rounded-lg"
               priority
+              unoptimized
             />
           </div>
         </div>
         <div>
           <h3 className="text-lg font-semibold mb-2">Your Photo</h3>
-          <div className="relative aspect-video">
+          <div className="relative aspect-video bg-muted">
             <Image
-              ref={capturedImageRef}
-              src={capturedImageSrc}
+              src={capturedImageUrl}
               alt="Captured"
               fill
               className="object-cover rounded-lg"
               priority
+              unoptimized
             />
           </div>
         </div>
       </div>
-      <Button onClick={compareImages} disabled={isComparing}>
+      <Button 
+        onClick={compareImages} 
+        disabled={isComparing}
+        className="w-full"
+      >
         {isComparing ? 'Comparing...' : 'Compare Images'}
       </Button>
-      {comparisonScore !== null && (
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Similarity Score</h3>
-          <Progress value={comparisonScore} className="w-full" />
-          <p className="text-center mt-2">{comparisonScore.toFixed(2)}% similar</p>
-        </div>
+      {comparisonMessage && (
+        <Alert variant={comparisonMessage.toLowerCase().includes('dark') ? "destructive" : "default"}>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Photo Analysis Result</AlertTitle>
+          <AlertDescription>{comparisonMessage}</AlertDescription>
+        </Alert>
       )}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <div className="flex justify-between mt-4">
+        <Button variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button variant="outline" onClick={onRetake}>
+          Retake Photo
+        </Button>
+        <Button 
+          onClick={onContinue} 
+          disabled={!canContinue}
+        >
+          Continue
+        </Button>
+      </div>
     </div>
   )
 }
+
