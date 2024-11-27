@@ -47,7 +47,7 @@ const tenantAccounts: TenantAccount[] = [
     password: "pass1",
     name: "Tim Bakker",
     address: "Effestraat 1, Eindhoven",
-    referenceImages: ["/images/t1-ref1.png", "/images/t1-ref2.png"],
+    referenceImages: ["/images/timo.jpg", "/images/t1-ref2.png"],
   },
   {
     email: "t2@kw.com",
@@ -716,7 +716,7 @@ export default function TenantPlatform() {
   <CardContent className="space-y-6">
     {selectedFile ? (
       <PhotoComparison
-        referenceImageSrc="/images/jads-good2.png"
+        referenceImageSrc="/images/timo.jpeg"
         selectedFile={selectedFile}
         onComparisonComplete={handleComparisonComplete}
         onRetake={() => setCurrentStep(12)}
