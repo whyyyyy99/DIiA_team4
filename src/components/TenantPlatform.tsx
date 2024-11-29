@@ -45,24 +45,73 @@ const tenantAccounts: TenantAccount[] = [
   {
     email: "t1@kw.com",
     password: "pass1",
-    name: "Tim Bakker",
+    name: "Timo 1",
     address: "Effestraat 1, Eindhoven",
     referenceImages: ["/images/timo.jpg", "/images/t1-ref2.png"],
   },
   {
     email: "t2@kw.com",
     password: "pass2",
-    name: "Tara Meik",
+    name: "Timo 2",
     address: "Bernstraat 77, Oisterwijk",
     referenceImages: ["/images/t2-ref1.png", "/images/t2-ref2.png"],
   },
   {
     email: "t3@kw.com",
     password: "pass3",
-    name: "Job Klaus",
+    name: "Timo 3",
     address: "Sportlaan 3, Tilburg",
     referenceImages: ["/images/t3-ref1.png", "/images/t3-ref2.png"],
   },
+  {
+    email: "t4@kw.com",
+    password: "pass4",
+    name: "Vietlinh 1",
+    address: "Academialaan 5, Tilburg",
+    referenceImages: ["/images/t3-ref1.png", "/images/t3-ref2.png"]
+  },
+  {
+    email: "t5@kw.com",
+    password: "pass5",
+    name: "Vietlinh 2",
+    address: "Duurstraat 10, Eindhoven",
+    referenceImages: ["/images/t3-ref1.png", "/images/t3-ref2.png"]
+  },
+  {
+    email: "t6@kw.com",
+    password: "pass6",
+    name: "Hanyue 1",
+    address: "JADS, den Bosch",
+    referenceImages: ["/images/t3-ref1.png", "/images/t3-ref2.png"]
+  },
+  {
+    email: "t7@kw.com",
+    password: "pass7",
+    name: "Patryk 1",
+    address: "Spoorlaan 3, Tilburg",
+    referenceImages: ["/images/P1.png", "/images/P2.png", "/images/P3.png", "/images/P4.png", "/images/P5.png"]
+  },
+  {
+    email: "t8@kw.com",
+    password: "pass8",
+    name: "Patryk 2",
+    address: "Spoorlaan 3, Tilburg",
+    referenceImages: ["/images/t3-ref1.png", "/images/t3-ref2.png"]
+  },
+  {
+    email: "t9@kw.com",
+    password: "pass9",
+    name: "Shaghi 1",
+    address: "Sportlaan 9, Eindhoven",
+    referenceImages: ["/images/t3-ref1.png", "/images/t3-ref2.png"]
+  },
+  {
+    email: "t10@kw.com",
+    password: "pass10",
+    name: "Hanyue 2",
+    address: "JADS, den Bosch",
+    referenceImages: ["/images/t3-ref1.png", "/images/t3-ref2.png"]
+  }
 ];
 
 export default function TenantPlatform() {
